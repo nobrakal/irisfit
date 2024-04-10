@@ -1,0 +1,10 @@
+(coq.theory
+ (name irisfit)
+ (synopsis "An Iris instance for establishing heap space bounds of concurrent programs in the presence of garbage collection.")
+ (modules :standard )
+ ; TODO use :standard, when achieving to a stable development
+ (flags -w -implicits-in-term,-redundant-canonical-projection,-several-object-files,-ambiguous-paths,-implicit-core-hint-db,-file-no-extension,-custom-entry-overriden,-custom-entry-overridden,-deprecated-hint-without-locality,-deprecated-ident-entry,-deprecated-hint-rewrite-without-locality,-deprecated-instance-without-locality,-notation-overridden,-notation-incompatible-format)
+ (theories stdpp iris diaframe Ltac2 Equations)
+)
+
+(include_subdirs qualified)

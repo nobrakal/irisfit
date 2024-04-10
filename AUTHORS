@@ -1,0 +1,11 @@
+Alexandre Moine
+
+Based on joint work with Arthur Charguéraud and François Pottier.
+
+This work is presented in the following papers:
+
+A High-Level Separation Logic for Heap Space under Garbage Collection
+  https://doi.org/10.1145/3571218
+
+Will it Fit? Verifying Heap Space Bounds for Concurrent Programs under Garbage Collection with Separation Logic
+  Under submission.
