@@ -453,8 +453,6 @@ Definition Closure (env:list (val*Qz)) (self:binder) (args:list binder) (code:tm
   let self' := go_self self args code in
   ClosureAux env self' args code l.
 
-(* Global Instance Closure_timeless env self args code l : Timeless (Closure env self args code l).
-Proof. apply _. Qed. *)
 Global Instance Closure_persistent env self args code l : Persistent (Closure env self args code l).
 Proof. apply _. Qed.
 

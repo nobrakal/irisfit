@@ -185,6 +185,9 @@ Qed.
 
 End ReasoningRules.
 
+Global Instance sizeof_persist `{storeG sz Σ} l n : Persistent (sizeof l n).
+Proof. apply _. Qed.
+
 (* ------------------------------------------------------------------------ *)
 
 (* Notations for assertions. *)
