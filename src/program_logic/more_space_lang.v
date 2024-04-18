@@ -127,6 +127,25 @@ Proof.
   iApply mapsfrom_split; eauto.
 Qed.
 
+Lemma vmapsfrom_correct `{!interpGS sz Σ} v q ls :
+  v ↤?{q} ls -∗ ⌜¬ is_loc v \/ (q = 0%Qz -> AllNeg ls)⌝.
+Proof.
+  iIntros.
+  destruct v; try naive_solver.
+  simpl. iDestruct (mapsfrom_correct with "[$]") as "%Hq".
+  naive_solver.
+Qed.
+
+Lemma vmapsfrom_split_empty `{!interpGS sz Σ} v q L :
+  v ↤?{q} L -∗ v ↤?{q} L ∗ v ↤?{0} ∅.
+Proof.
+  iIntros. iDestruct (vmapsfrom_correct with "[$]") as "%".
+  iApply vmapsfrom_split.
+  { set_solver. }
+  { smultiset_solver. }
+  by do 2 rewrite right_id.
+Qed.
+
 Lemma vmapsfrom_no_loc `{!interpGS sz Σ} (v:val) (qz:Qz) (L:smultiset loc) :
   ¬ is_loc v ->
   (v ↤?{qz} L ⊣⊢ True)%I.
@@ -156,15 +175,6 @@ Proof.
   destruct_decide (decide (is_loc l)) as Eq.
   { apply is_loc_inv in Eq.  destruct Eq as (?,?). subst. apply mapsfrom_cleanup.  }
   { iIntros "(? & ?)". iIntros. destruct l; eauto. naive_solver. }
-Qed.
-
-Lemma vmapsfrom_correct `{!interpGS sz Σ} v q ls :
-  v ↤?{q} ls -∗ ⌜¬ is_loc v \/ (q = 0%Qz -> AllNeg ls)⌝.
-Proof.
-  iIntros.
-  destruct v; try naive_solver.
-  simpl. iDestruct (mapsfrom_correct with "[$]") as "%Hq".
-  naive_solver.
 Qed.
 
 (* ------------------------------------------------------------------------ *)

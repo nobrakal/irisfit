@@ -455,7 +455,7 @@ Proof.
   iFrame. eauto.
 Qed.
 
-(* XXX remove this? Derived automatically ? *)
+(* LATER remove this? Derived automatically ? *)
 Lemma wpc_load_no_loc `{Enc A} {E π X} (l:loc) (n:Z) q vs (a:A) :
  (0 <= n < Z.to_nat (length vs))%Z ->
   (vs !!! Z.to_nat n) = enc a ->
@@ -660,7 +660,6 @@ Proof.
   iApply (wp_mono with "[$]"). iIntros (?) "(?&?&?)". iFrame.
 Qed.
 
-(* XXX too many conseq... And what to do with the crit? *)
 Lemma wpc_fconseq_with_souvenir_Some (A:Type) (EA:Enc A) E π P Q r t (φ:A -> iProp Σ):
   (∀ k, ⌜dom k = r⌝ -∗ PBT {[π]} k -∗ P =[ E | true | π | locs t ]=∗ PBT {[π]} k ∗ Q ) -∗
   (outside π -∗ P ∗ ( Q -∗ outside π ∗ wpc E π (Some r) t φ)) -∗

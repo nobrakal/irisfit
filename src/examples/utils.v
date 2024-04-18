@@ -33,7 +33,6 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(* XXX *)
 
 Lemma wpc_store_no_loc `{interpGS0 Σ} E tid X (l:loc) (n:Z) v vs :
   ¬(is_loc v) ->
@@ -43,7 +42,7 @@ Lemma wpc_store_no_loc `{interpGS0 Σ} E tid X (l:loc) (n:Z) v vs :
 Proof.
   iIntros (Hv). iIntros.
   iApply (wpc_mono with "[-]").
-  iApply (@wpc_store _ _ _ _ _ _ _ _ _ 1%Qz ∅).
+  iApply (wpc_store _ _ _ 1%Qz ∅).
   3:iFrame.
   { congruence. }
   { eauto. }
@@ -52,7 +51,7 @@ Proof.
 Qed.
 
 (* ------------------------------------------------------------------------ *)
-(* XXX *)
+(* LATER move to iris *)
 
 Lemma big_sepM2_lookup_acc_l {PROP : bi} {K : Type} {EqDecision0 : EqDecision K} {H : Countable K} {A B : Type}
     (Φ : K → A → B → PROP) (m1 : gmap K A) (m2 : gmap K B) (i : K) (x1 : A) :

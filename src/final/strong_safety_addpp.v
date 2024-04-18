@@ -1323,7 +1323,6 @@ Proof.
   { eauto using strongs_allwillfit. }
 Qed.
 
-(* XXX use more *)
 Lemma Forall_weak_anf_lookup θ i t (g:status) :
   θ !! i = Some (t,g) ->
   Forall weak_anf θ.*1 ->

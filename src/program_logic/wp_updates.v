@@ -11,6 +11,7 @@ From irisfit Require Import disc interp_base.
 Section Updates.
 Context `{interpGS sz Σ}.
 
+(* A fancy update, giving access to [interp]. *)
 Definition vsfupd E1 E2 b i V P Q : iProp Σ :=
   P -∗ ∀ mt k e σ lk,
   ⌜k !! i = Some (lk,V)⌝ -∗
@@ -90,8 +91,9 @@ Lemma sfupd_weak_visibles E b i V M P Q :
 Proof. iIntros. rewrite /sfupd. by iApply vsfupd_weak_visibles. Qed.
 
 (* ------------------------------------------------------------------------ *)
-(* supd allows a fancy update of P to Q under access to interp. *)
+(* supd allows a basic update of P to Q under access to interp. *)
 
+(* LATER: derive from vsfupd? *)
 Definition supd b i V P Q : iProp Σ :=
   P -∗ ∀ mt k e σ lk,
     ⌜k !! i = Some (lk,V)⌝ -∗
@@ -99,7 +101,6 @@ Definition supd b i V P Q : iProp Σ :=
 
 Local Notation "P =[ b | i | V ]=∗ Q" := (supd b i V P Q)%I (at level 99, Q at level 200).
 
-(* XXX derive from fupd *)
 Lemma supd_weak_visibles b i V M P Q :
   (P =[ b | i | (V ∖ dom M) ]=∗ Q) -∗
   (PBT {[i]} M ∗ P) =[ b | i | V ]=∗ (PBT {[i]} M ∗ Q).

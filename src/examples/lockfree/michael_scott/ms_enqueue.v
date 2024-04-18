@@ -59,7 +59,6 @@ Proof.
   iIntros "(Hq&?&?&?)".
   destruct xs,zs;eauto.
   { iDestruct "Hq" as "%M". subst.
-    (* XXX separate lemma. See with dequeue *)
     destruct_decide (decide (lz=ls)). 2:iPureIntro; set_solver.
     subst.
     iDestruct (cells_borrow with "[$][$]") as "(_&[% (?&_)])".

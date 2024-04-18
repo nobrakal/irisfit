@@ -371,7 +371,6 @@ Tactic Notation "wpc_load" :=
 Ltac wpc_store :=
   wpc_apply wpc_store; only 1,2:(eauto;try compute_done); last iIntros ([]).
 
-(* XXX move *)
 Lemma wpc_bind_if_noclean `{interpGS0 Σ} (A:Type) (EA:Enc A) E i r (t1 t2 t3:tm) (Q : A -> iProp Σ) :
   wpc E i None t1 (fun c:bool => if c then wpc E i r t2 Q else wpc E i r t3 Q) -∗
   wpc E i r (tm_if t1 t2  t3) Q.

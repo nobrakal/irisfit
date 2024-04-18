@@ -120,22 +120,6 @@ Proof.
   iPureIntro. set_solver.
 Qed.
 
-(* XXX move *)
-
-Lemma exploit_sizeof σ l n :
-  store_interp σ -∗  sizeof l n -∗ ⌜exists b, σ !! l = Some (BBlock b) /\ sz (length b) = n⌝.
-Proof.
-  iIntros "[% (?&?&%)] ?".
-  iDestruct (meta_in_dom with "[$][$]") as "%Hl".
-  apply elem_of_dom in Hl. destruct Hl as (?,Hl).
-  assert (σ !! l = Some (BBlock x)) as E.
-  { rewrite H lookup_fmap Hl //. }
-  iDestruct (big_sepM_lookup _ _ l (sz (length x)) with "[$]") as "#?".
-  { rewrite lookup_fmap Hl //. }
-  iDestruct (gen_heap.meta_agree with "[$][$]") as "%".
-  iPureIntro. naive_solver. Unshelve. apply _.
-Qed.
-
 Lemma use_sizeof r τ θ l n A  :
   linked r θ τ ->
   sizeof l n -∗

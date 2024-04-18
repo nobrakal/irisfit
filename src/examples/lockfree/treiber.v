@@ -766,7 +766,7 @@ Proof.
   rewrite -{1}pbt_PBT.
   iDestruct (open_phys_stack with "[$]") as "(HS&[%h (S1&S2&S3)])".
 
-  (* XXX copy/pasted *)
+  (* LATER copy/pasted *)
   iAssert (visbone g.(gb) h) as "#T1".
   { destruct xs0 as [|(?&?&?)]. iDestruct "S3" as "->". by iLeft.
     iDestruct "S3" as "[%[% (->&?&?&?&?)]]". iRight. iExists _.

@@ -63,8 +63,9 @@ Proof.
       case_decide; simpl in *; simpl; subst; lia. }
     { inversion H2. subst.
       destruct (σ !! i); last inversion H1. simpl in *.
-      rewrite decide_False in H1; last eauto using gc_preserves_reachable.
-      inversion H1; subst. simpl. lia. } }
+      rewrite decide_False in H1.
+      { inversion H1; subst. simpl. lia. }
+      { rewrite -gc_preserves_reachable //. } } }
 Qed.
 
 Lemma atomic_step_gc_insensitive2 t1 g1 σ1 t2 g2 σ2 σ1' r efs:

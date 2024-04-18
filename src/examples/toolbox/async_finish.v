@@ -76,24 +76,12 @@ Proof.
   rewrite Hd. rewrite size_list_to_set //.
 Qed.
 
-(* XXX move *)
-Lemma size_filter {A} `{Countable K} P `{!∀ x, Decision (P x)} (M:gmap K A) :
-  size (filter P M) ≤ size M.
-Proof.
-  pattern M. apply map_ind.
-  { rewrite map_filter_empty //. }
-  { intros ? ? ? Hm ?. rewrite map_size_insert Hm.
-    rewrite map_filter_insert. case_decide.
-    { rewrite map_size_insert. destruct (filter P m !! i); simpl; lia. }
-    { rewrite map_filter_delete map_size_delete.
-      destruct (filter P m !! i); simpl; lia. } }
-Qed.
-
 Lemma count_true_le_size M :
   count_true M ≤ size M.
-Proof. apply size_filter. Qed.
+Proof. apply map_size_filter. Qed.
 
-Lemma size_filter_eq_inv {A} `{Countable K} `{!∀ x, Decision (P x)} (M:gmap K A) :
+(* LATER move to iris. *)
+Lemma map_size_filter_eq_inv {A} `{Countable K} `{!∀ x, Decision (P x)} (M:gmap K A) :
   size M = size (filter P M) ->
   map_Forall (fun x y => P (x,y)) M.
 Proof.
@@ -105,7 +93,7 @@ Proof.
   2:{ exfalso.
       rewrite map_filter_delete map_size_delete in Hsize.
       rewrite map_lookup_filter Hi in Hsize. simpl in Hsize.
-      pose proof (size_filter P M'). lia. }
+      pose proof (map_size_filter P M'). lia. }
   rewrite map_size_insert map_lookup_filter Hi in Hsize. simpl in Hsize.
   apply map_Forall_insert; eauto.
 Qed.
@@ -113,7 +101,7 @@ Qed.
 Lemma size_count_true_eq_inv M :
   size M = count_true M ->
   map_Forall (fun _ b => b=true) M.
-Proof. intros E. apply size_filter_eq_inv in E. eauto. Qed.
+Proof. intros E. apply map_size_filter_eq_inv in E. eauto. Qed.
 
 (******************************************************************************)
 (* [half_pow n] is (1/2)^n *)

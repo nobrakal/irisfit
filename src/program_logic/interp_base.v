@@ -322,7 +322,7 @@ Proof.
     split_and!; eauto using roots_inv_shift2, linked_shift2. }
 Qed.
 
-(* XXX try to facto with true *)
+(* LATER try to facto with true *)
 Lemma interp_shift_false mt (k:ctx) tid (σ:store) lk l1 l2 e (L2:gmap loc Qp) :
   k !! tid = Some (lk,l1 ∪ l2) ->
   l2 = dom L2 ->

@@ -198,7 +198,7 @@ Definition block_evolution unreachable b1 b2 :=
 (* The evolution of the store under the action of the GC is the pointwise
    extension of the relation that describes the evolution of a block. *)
 
-Definition store_evolution r s1 s2 :=
+Definition gc r s1 s2 :=
   dom s1 = dom s2 ∧
   ∀ l, l ∈ dom s1 →
   let unreachable := ¬ reachable r s1 l in
@@ -941,20 +941,20 @@ Qed.
 
 (* ------------------------------------------------------------------------ *)
 
-(* Lemmas about [store_evolution]. *)
+(* Lemmas about [gc]. *)
 
-Lemma store_evolution_reflexive r s :
-  store_evolution r s s.
+Lemma gc_id r s :
+  gc r s s.
 Proof.
   split; [ eauto |].
   intros l _ ?.
   left. eauto.
 Qed.
 
-Lemma store_evolution_transitive r s1 s2 s3 :
-  store_evolution r s1 s2 ->
-  store_evolution r s2 s3 ->
-  store_evolution r s1 s3.
+Lemma gc_trans r s1 s2 s3 :
+  gc r s1 s2 ->
+  gc r s2 s3 ->
+  gc r s1 s3.
 Proof.
   intros [HE1 Hb1] [HE2 Hb2].
   split.
@@ -974,12 +974,12 @@ Proof.
     by destruct Hb2 as [<-| (?&?)]. }
 Qed.
 
-Lemma store_evolution_preserves_closedness r s s' :
+Lemma gc_preserves_closedness r s s' :
   closed r s →
-  store_evolution r s s' →
+  gc r s s' →
   closed r s'.
 Proof.
-  unfold store_evolution.
+  unfold gc.
   intros (?&Hclosed) (Hdom & Hevol).
   split; first set_solver.
   intros l l' Hsucc.
@@ -997,8 +997,8 @@ Proof.
     set_solver. }
 Qed.
 
-Lemma store_evolution_preserves_successor r s1 s2 l l' :
-  store_evolution r s1 s2 →
+Lemma gc_preserves_successor r s1 s2 l l' :
+  gc r s1 s2 →
   reachable r s1 l →
   successor s1 l l' <-> successor s2 l l'.
 Proof.
@@ -1017,28 +1017,28 @@ Proof.
     rewrite same_successor // -Hdom //. }
 Qed.
 
-Lemma store_evolution_preserves_rtc_successor x r s1 s2 l :
-  store_evolution r s1 s2 →
+Lemma gc_preserves_rtc_successor x r s1 s2 l :
+  gc r s1 s2 →
   reachable r s1 x →
   rtc (successor s1) x l <-> rtc (successor s2) x l.
 Proof.
   intros; split; induction 1 as [| x k l Hsucc Hrtc IH ]; eauto with rtc.
   { assert (successor s2 x k).
-    { rewrite <- store_evolution_preserves_successor by eauto. eauto. }
+    { rewrite <- gc_preserves_successor by eauto. eauto. }
     eauto with rtc reachable. }
   { assert (successor s1 x k).
-    { rewrite -> store_evolution_preserves_successor by eauto. eauto. }
+    { rewrite -> gc_preserves_successor by eauto. eauto. }
     eauto with rtc reachable. }
 Qed.
 
-Lemma store_evolution_preserves_reachable r s1 s2 l :
-  store_evolution r s1 s2 →
+Lemma gc_preserves_reachable r s1 s2 l :
+  gc r s1 s2 →
   reachable r s1 l <-> reachable r s2 l.
 Proof.
   intros. split; intros (x & Hroot & Hpath); exists x; split; try done.
-  - rewrite -store_evolution_preserves_rtc_successor //.
+  - rewrite -gc_preserves_rtc_successor //.
     eauto with reachable.
-  - rewrite store_evolution_preserves_rtc_successor //.
+  - rewrite gc_preserves_rtc_successor //.
     eauto with reachable.
 Qed.
 
@@ -1055,10 +1055,9 @@ Proof.
   split; intros (b & ?); exists b; [ eauto | tauto ].
 Qed.
 
-(* ADDED *)
-Lemma store_evolution_collect_strong r s1 s2 :
-  store_evolution r s1 s2 ->
-  store_evolution r s2 (collect r s1).
+Lemma gc_pursue_collect r s1 s2 :
+  gc r s1 s2 ->
+  gc r s2 (collect r s1).
 Proof.
   intros Hs. generalize Hs; intros [Hd He].
   split.
@@ -1075,17 +1074,17 @@ Proof.
     rewrite -Hel Hl. simpl.
     rewrite /block_evolution.
     case (decide (reachable r s1 l)); eauto.
-    intros. rewrite store_evolution_preserves_reachable in n; eauto. }
-  { right. rewrite -store_evolution_preserves_reachable; eauto.
+    intros. rewrite gc_preserves_reachable in n; eauto. }
+  { right. rewrite -gc_preserves_reachable; eauto.
     split; try easy. rewrite (lookup_total_alt (collect r s1)).
     rewrite /collect map_lookup_imap. rewrite Hl.
     simpl. rewrite decide_False //. }
 Qed.
 
-Lemma store_evolution_collect r s :
-  store_evolution r s (collect r s).
+Lemma gc_collect r s :
+  gc r s (collect r s).
 Proof.
-  eauto using store_evolution_collect_strong, store_evolution_reflexive.
+  eauto using gc_pursue_collect, gc_id.
 Qed.
 
 End Successors.

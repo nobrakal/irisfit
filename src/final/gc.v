@@ -6,33 +6,10 @@ From irisfit Require Import successors store pointers.
 
 Set Implicit Arguments.
 
-(* This file defines garbage collection in irisfit.
+(* This file contains additional lemmas about garbage collection.
    Most of the work is done in [successors.v]. *)
 
 (* ------------------------------------------------------------------------ *)
-
-(* XXX I should move store evolution here, rename it into "gc",
-   and call this file "gc_more".
- *)
-Definition gc : gset loc -> store -> store -> Prop :=
-  store_evolution.
-
-Local Hint Unfold gc : core.
-
-(* ------------------------------------------------------------------------ *)
-(* Basic lemmas about [gc] *)
-
-(* The GC may have no effect. *)
-Lemma gc_id r σ :
-  gc r σ σ.
-Proof. apply store_evolution_reflexive. Qed.
-
-(* The GC is transitive. *)
-Lemma gc_trans r σ1 σ2 σ3 :
-  gc r σ1 σ2 ->
-  gc r σ2 σ3 ->
-  gc r σ1 σ3.
-Proof. apply store_evolution_transitive. Qed.
 
 (* gc preserves domain *)
 Lemma gc_dom r σ1 σ2 :
@@ -71,7 +48,6 @@ Lemma gc_weak r1 r2 σ σ' :
   r1 ⊆ r2 ->
   gc r1 σ σ'.
 Proof.
-  unfold gc, store_evolution.
   intros [? Hr] ?.
   split; try easy.
   intros ? Hl.
@@ -127,15 +103,6 @@ Proof.
   rewrite !lookup_total_alt in Hlr.
   rewrite Hb in Hlr. simpl in Hlr.
   destruct (σ' !! l); naive_solver.
-Qed.
-
-Lemma gc_preserves_reachable σ r σ' l :
-  gc r σ σ' ->
-  reachable r σ' l ->
-  reachable r σ l.
-Proof.
-  intros [].
-  apply store_evolution_preserves_reachable; try easy.
 Qed.
 
 Lemma successor_to_rstore s l l' bs :
@@ -243,21 +210,6 @@ Qed.
 
 (* ------------------------------------------------------------------------ *)
 
-Lemma gc_collect r σ :
-  gc r σ (collect r σ).
-Proof.
-  unfold gc.
-  apply store_evolution_collect.
-Qed.
-
-Lemma gc_preserves_reachable' σ r σ' l :
-  gc r σ σ' ->
-  reachable r σ l ->
-  reachable r σ' l.
-Proof.
-  intros X. eapply store_evolution_preserves_reachable in X. naive_solver.
-Qed.
-
 Lemma reachable_collect r σ l :
   reachable r (collect r σ) l ->
   reachable r σ l.
@@ -282,20 +234,9 @@ Proof.
       rewrite /collect !lookup_total_alt !map_lookup_imap Hb Hb'. simpl.
       destruct_decide (decide ((reachable r σ' l))).
       { eapply gc_preserves_reachable in H; eauto. rewrite decide_True //. }
-      { rewrite decide_False //.  intros ?. apply H. eauto using gc_preserves_reachable'. } }
+      { rewrite decide_False // gc_preserves_reachable //. } }
     { right. split.
       { intros ?. apply X. eauto 15 using reachable_collect. }
       { rewrite lookup_total_alt /collect map_lookup_imap Hb'. simpl.
-        rewrite decide_False //. intros ?. eauto using gc_preserves_reachable. } } }
-Qed.
-
-(* ------------------------------------------------------------------------ *)
-(* GC has the diamond property. *)
-
-Lemma gc_pursue_collect r σ1 σ2 :
-  gc r σ1 σ2 ->
-  gc r σ2 (collect r σ1).
-Proof.
-  intros ?.
-  split; now apply store_evolution_collect_strong.
+        rewrite decide_False // -gc_preserves_reachable //. } } }
 Qed.

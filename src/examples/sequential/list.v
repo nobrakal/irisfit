@@ -86,17 +86,6 @@ Proof.
   iFrame.
 Qed.
 
-(* XXX *)
-Lemma vmapsfrom_split_empty `{!interpGS0 Σ} v q L :
-  v ↤?{q} L -∗ v ↤?{q} L ∗ v ↤?{0} ∅.
-Proof.
-  iIntros. iDestruct (vmapsfrom_correct with "[$]") as "%".
-  iApply vmapsfrom_split.
-  { set_solver. }
-  { smultiset_solver. }
-  by do 2 rewrite right_id.
-Qed.
-
 Lemma list_cons_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) l qz qp x v xs :
   (is_loc v -> qz ≠ 0%Qz) ->
   CODE (list_cons [[v,l]])

@@ -15,8 +15,8 @@ From irisfit.examples Require Import utils.
    Heavily rests on the work by Vindum & Birkedal
    https://zenodo.org/record/4317021
 
-   XXX we can make this abstract w.r.t the  "reachable_1" predicate.
-   XXX use the bi_rtc constructioon, when ready
+   LATER we can make this abstract w.r.t the  "reachable_1" predicate.
+   LATER use the bi_rtc constructioon, when ready
  *)
 
 Section Reachable.

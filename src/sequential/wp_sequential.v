@@ -18,7 +18,6 @@ From irisfit.program_logic Require Import wp_alloc wp_load wp_store wp_call wp_c
    This new WP may be useful, but the interface with the base WP is a bit painful.
  *)
 
-
 (* The cmras we need for the sequential mode *)
 Class seqG Σ := SeqG {
   iseq1 : inG Σ (authUR (gmapUR loc fracR));

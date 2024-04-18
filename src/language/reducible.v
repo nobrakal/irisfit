@@ -34,7 +34,6 @@ Lemma reducible_fork t σ:
   reducible (tm_fork t) Out σ.
 Proof. reduce. Qed.
 
-(* XXX was with tactics in sequential *)
 Lemma reducible_load l n vs σ g :
   σ !! l = Some (BBlock vs) ->
   (0 <= n < Z.of_nat (length vs))%Z ->
@@ -56,9 +55,7 @@ Lemma reducible_store l n v vs g σ :
   σ !! l = Some (BBlock vs) ->
   (0 <= n < Z.of_nat (length vs))%Z ->
   reducible (tm_store (tm_val (val_loc l)) (tm_val (val_int n)) (tm_val v)) g σ.
-Proof.
-  intros ?. reduce.
-Qed.
+Proof. reduce. Qed.
 
 Lemma reducible_alloc n σ:
   (0 < n)%Z ->

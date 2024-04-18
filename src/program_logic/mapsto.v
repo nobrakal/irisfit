@@ -136,8 +136,7 @@ Proof.
   symmetry. apply not_elem_of_dom. rewrite Hcoh dom_fmap // in Hl.
 Qed.
 
-
-(* XXX move to iris *)
+(* LATER move to iris *)
 Lemma meta_in_dom `{Countable A} α (l:loc) (N : namespace) (x : A) :
   meta l N x -∗ gen_heap_interp α -∗ ⌜l ∈ dom α⌝.
 Proof.
@@ -145,6 +144,20 @@ Proof.
   iIntros "[% (%&?&?)]".
   iDestruct (ghost_map.ghost_map_lookup with "[$][$]") as "%X".
   iPureIntro. apply elem_of_dom_2 in X. set_solver.
+Qed.
+
+Lemma exploit_sizeof σ l n :
+  store_interp σ -∗ sizeof l n -∗ ⌜exists b, σ !! l = Some (BBlock b) /\ sz (length b) = n⌝.
+Proof.
+  iIntros "[% (?&?&%)] ?".
+  iDestruct (meta_in_dom with "[$][$]") as "%Hl".
+  apply elem_of_dom in Hl. destruct Hl as (?,Hl).
+  assert (σ !! l = Some (BBlock x)) as E.
+  { rewrite H lookup_fmap Hl //. }
+  iDestruct (big_sepM_lookup _ _ l (sz (length x)) with "[$]") as "#?".
+  { rewrite lookup_fmap Hl //. }
+  iDestruct (gen_heap.meta_agree with "[$][$]") as "%".
+  iPureIntro. naive_solver. Unshelve. apply _.
 Qed.
 
 Lemma sizeof_in_dom σ l n :
@@ -184,9 +197,6 @@ Proof.
 Qed.
 
 End ReasoningRules.
-
-Global Instance sizeof_persist `{storeG sz Σ} l n : Persistent (sizeof l n).
-Proof. apply _. Qed.
 
 (* ------------------------------------------------------------------------ *)
 

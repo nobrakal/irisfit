@@ -101,7 +101,7 @@ Proof.
   destruct xs as [|(v,(?,?)) ?].
   { wpc_load. iIntros "Hl".
 
-    (* XXX a better bind... *)
+    (* LATER a better bind... *)
     iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_true //.
     wpc_let_noclean.
     wpc_call. wpc_let_noclean. wpc_alloc. iIntros (r) "(?&?&Hpr&_)". simpl.
@@ -173,7 +173,6 @@ Proof.
     iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_true //.
     wpc_let_noclean.
 
-    (* XXX store no loc does not give a 0 mapsfrom *)
     wpc_store. iIntros "(?&_&?)". simpl.
     iDestruct (pbt_join with "[$]") as "?". rewrite Qp.div_2.
     iDestruct (confront_pbt_vpbt with "[$]") as "%". apply Qp.not_add_le_l.
@@ -222,7 +221,7 @@ Proof.
 
     iApply wpc_conseq. iApply (vpbt_transfer x v). 3:iFrame. 1,2:set_solver. iIntros "(?&?)".
 
-    (* XXX better lemma *)
+    (* LATER better lemma *)
     iApply wpc_conseq. iApply (vpbt_PBT_transfer _ _ x _ _ _ {[l0:= _]}).
     3:rewrite -pbt_PBT; iFrame. 1,2:set_solver. iIntros "(?&?)".
     iApply wpc_conseq. iApply (vpbt_PBT_transfer _ _ x _ _ _ {[l1:= _]}).
