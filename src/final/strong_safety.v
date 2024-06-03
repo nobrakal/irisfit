@@ -24,12 +24,12 @@ Definition Reducible ms a ρ :=
 Definition NotStuck ms a ρ :=
   Ended a ρ \/ Reducible ms a ρ.
 
-(* All Alloc and Poll Are Out *)
-Definition Aapao : configuration -> Prop := fun '(θ,σ) =>
+(* All Poll and Alloc Are Out *)
+Definition paao : configuration -> Prop := fun '(θ,σ) =>
   (forall t g, (t,g) ∈ θ -> (IsPoll t \/ exists n, IsAlloc n t) -> g = Out).
 
 (* I forgot what was the intent of the name. *)
-Definition Gns ms : configuration -> Prop := fun '(θ,σ) =>
+Definition gccmeaf ms : configuration -> Prop := fun '(θ,σ) =>
    AllOut θ -> ¬ EveryAllocFits sz ms (θ,σ) ->
    exists σ', gc (locs θ.*1) σ σ' /\ EveryAllocFits sz ms (θ,σ') .
 
@@ -37,36 +37,10 @@ Definition Safe ms ρ :=
   (forall π, Enabled sz ms (Thread π) ρ -> NotStuck ms (Thread π) ρ).
 
 Definition StronglySafe ms ρ :=
-  Aapao ρ /\ Gns ms ρ /\ Safe ms ρ.
+  paao ρ /\ gccmeaf ms ρ /\ Safe ms ρ.
 
 (* ------------------------------------------------------------------------ *)
 (* Towards [wp_strong_safety] *)
-
-Lemma size_heap_after_collect r σ σ' :
-  gc r σ' σ ->
-  size_heap sz (collect r σ) <= size_heap sz (collect r σ').
-Proof.
-  rewrite /size_heap => Hgc.
-  eapply stdpp.map_fold_ind_2 with (P:= fun x1 x2 _ _ => x1 <= x2).
-  all:try (intros; lia).
-  { intros. destruct Hgc as (Hd&_).
-    rewrite -!not_elem_of_dom !dom_collect Hd //. }
-  { intros. unfold collect in *.
-    rewrite !map_lookup_imap in H1,H2.
-    destruct (σ' !! i) eqn:E2; last inversion H2.
-    unfold collect_block in *. simpl in *.
-    destruct_decide (decide (reachable r σ' i)).
-    { inversion H2. subst. destruct Hgc as (_&Hgc). destruct (Hgc i).
-      eauto using elem_of_dom. 2:naive_solver.
-      rewrite !lookup_total_alt E2 in H5.
-      destruct (σ !! i); simpl in *; inversion H1.
-      case_decide; simpl in *; simpl; subst; lia. }
-    { inversion H2. subst.
-      destruct (σ !! i); last inversion H1. simpl in *.
-      rewrite decide_False in H1.
-      { inversion H1; subst. simpl. lia. }
-      { rewrite -gc_preserves_reachable //. } } }
-Qed.
 
 Lemma atomic_step_gc_insensitive2 t1 g1 σ1 t2 g2 σ2 σ1' r efs:
   atomic_step t1 g1 σ1 t2 g2 σ2 efs ->
@@ -392,6 +366,24 @@ Proof.
   eexists. split. eauto. by econstructor.
 Qed.
 
+Definition not_stuck_oblivious (π:nat) (c:(list (tm*status) * store)) : Prop :=
+  let '(ts,σ) := c in
+  ∃ t g, ts !! π = Some (t,g) /\ not_stuck t g σ.
+
+Lemma not_stuck_oblivious_to_main ms π ts σ0 σ :
+  Enabled sz ms (Thread π) (ts, σ) ->
+  gc (locs ts.*1) σ0 σ ->
+  not_stuck_oblivious π (ts,σ0) ->
+  NotStuck ms (Thread π) (ts,σ).
+Proof.
+  intros ? Hgc (t&g&(E1&E2)).
+  destruct E2; [left|right].
+  { eexists _,_. eauto. }
+  { eapply (reducible_gc_insensitive ms (locs ts.*1)); try done.
+    { auto_locs. apply elem_of_middle in E1. destruct E1 as (?&?&?&?). subst.
+      rewrite !fmap_app !fmap_cons union_list_app union_list_cons. set_solver. } }
+Qed.
+
 Lemma six_four ms ts σ σ' π t g:
   Enabled sz ms (Thread π) (ts, σ') ->
   gc (locs ts.*1) σ σ' ->
@@ -401,19 +393,14 @@ Lemma six_four ms ts σ σ' π t g:
 Proof.
   intros ? Hgc Hall Htg.
   assert ((t,g) ∈ ts) as Htg' by eauto using elem_of_list_lookup_2.
-  destruct (Hall t g Htg').
-  { left. naive_solver. }
-  { right.
-    eapply (reducible_gc_insensitive ms (locs ts.*1)); try done.
-    auto_locs. apply elem_of_middle in Htg. destruct Htg as (?&?&?&?). subst.
-    rewrite !fmap_app !fmap_cons union_list_app union_list_cons. set_solver. }
+  eapply not_stuck_oblivious_to_main; try done. naive_solver.
 Qed.
 
 Lemma deduce_gns ms ts σ σ' :
   gc (locs ts.*1) σ' σ ->
   all_not_stuck ts σ' ->
   (forall ts' σ, AllOut ts' → step_oblivious (ts, σ') (ts', σ) → live_heap_size sz (locs ts'.*1) σ ≤ ms) ->
-  Gns ms (ts,σ).
+  gccmeaf ms (ts,σ).
 Proof.
   intros Hgc Hs1 Hs2 Hall Hne.
   exists (collect (locs ts.*1) σ).
@@ -425,7 +412,7 @@ Qed.
 
 Lemma all_not_stuck_aapao θ σ' σ :
   all_not_stuck θ σ' ->
-  Aapao (θ, σ).
+  paao (θ, σ).
 Proof.
   intros Hall t g Htg HP.
   apply Hall in Htg.
@@ -583,7 +570,7 @@ Qed.
 
 Lemma not_all_outside_exists ms θ σ :
   ¬ AllOut θ ->
-  Aapao (θ, σ) ->
+  paao (θ, σ) ->
   (∀ π, Enabled sz ms (Thread π) (θ, σ) → NotStuck ms (Thread π) (θ, σ)) ->
   ∃ c, step_main sz ms (θ, σ) c.
 Proof.
@@ -629,6 +616,18 @@ Proof.
     { constructor. done. naive_solver. }
     split. simpl. naive_solver. done. }
   { eauto using not_all_outside_exists. }
+Qed.
+
+Definition globally_not_stuck ms '(θ,σ) :=
+  (exists c, step_main sz ms (θ,σ) c) \/ (Forall is_val θ.*1).
+
+Lemma strongly_safe_globally_not_stuck' ms c :
+  StronglySafe ms c ->
+  globally_not_stuck ms c.
+Proof.
+  intros. destruct c as (θ,σ).
+  destruct_decide (decide (Forall is_val θ.*1)); [by right | left].
+  eauto using strongly_safe_globally_not_stuck.
 Qed.
 
 End WithSize.

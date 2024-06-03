@@ -235,7 +235,7 @@ Proof.
   iDestruct (confront_pbt_vpbt with "[$]") as "%Hc".
   { now apply Qp.not_add_le_l. }
 
-  pclean l by ltac:(fun _ => destruct lv0; set_solver).
+  pclean l.
 
   iApply wpc_tconseq.
   { iApply (interp_free' l). }

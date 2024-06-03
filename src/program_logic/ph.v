@@ -7,21 +7,13 @@ From irisfit.spacelang Require iris.
 From irisfit.lib Require Import qz qz_cmra smultiset fracset.
 From irisfit Require Import more_maps_and_sets tied more_cmras.
 
-(* This module sets-up the machinery needed for the store.
-   It provides traditional points-to assertions through the Iris gen_heap:
-   https://plv.mpi-sws.org/coqdoc/iris/iris.base_logic.lib.gen_heap.html
+(* This module sets-up the machinery needed for the mapsfrom assertion
+   [l' ↤{q} ls]. The file's name, [ph], stands for "predecessor heap".
 
-   Moreover, a ghost mapping [π] of each memory location to its predecessors is maintained.
-   In the user's eyes, this is done via "mapsfrom" assertion [l' ↤{q} ls]. The file's name,
-   [ph], stands for "predecessor heap".
-
-   These mapsfrom assertion are non-standard in two points:
+   These mapsfrom assertions are non-standard in two ways:
    + First, predecessors are represented as signed multisets.
    + They can come with a null fraction, in that case with only a negative multiset.
      This property is enforced by fracset. *)
-
-(* Suppose [L] is the type of memory locations, and [B] is the type of blocks
-   stored in the heap, so the heap is a finite map of [L] to [B]. *)
 
 (* ------------------------------------------------------------------------ *)
 
@@ -102,6 +94,7 @@ Implicit Types q : Qz.
 
 (* ------------------------------------------------------------------------ *)
 (* A helper lemma *)
+
 Lemma invariant_dom σ π :
   invariant σ π ->
   dom π ⊆ dom σ.
@@ -129,7 +122,7 @@ Definition pred σ π : iProp Σ :=
    for mapsto (via gen_heap_interp) and mapsfrom (via pred) and links the two
    (via invariant) *)
 Definition ph_interp σ : iProp Σ :=
-(∃ π, pred σ π ∗ ⌜invariant σ π⌝).
+  ∃ π, pred σ π ∗ ⌜invariant σ π⌝.
 
 (* ------------------------------------------------------------------------ *)
 
@@ -497,8 +490,8 @@ Qed.
 
 (* ------------------------------------------------------------------------ *)
 
-(* Helper lemma for [pred_alloc]*)
-Lemma alloc_fracset_local_update π μ l fs :
+(* Helper lemma for [pred_alloc] *)
+Local Lemma alloc_fracset_local_update π μ l fs :
   frac fs = 1%Qz ->
   supp fs = ∅ ->
   (<[l:=fs]> ((full_gmultiset <$> π) ⋅ μ), ε : gmap loc (fracset loc)) ~l~>
@@ -585,7 +578,7 @@ Qed.
 
 (* An interesting lemma. Under the right hypotheses,
    we can delete a location from π and transfer the negative part in μ *)
-Lemma dealloc_fracset_update π μ l fs gs (ns:fracset loc) :
+Local Lemma dealloc_fracset_update π μ l fs gs (ns:fracset loc) :
   all_neg μ ->
   frac fs = 1%Qz ->
   π !! l = Some gs ->
@@ -645,7 +638,7 @@ Qed.
 (* Conversely, the conjunction [pred σ π ∗ l ↤ ls] allows deallocation,
    and produces a witness that the predecessors of [l] form a subset
    of [ls] plus some deallocated locations [gs]. *)
-Lemma pred_free_singleton σ π l ls :
+Local Lemma pred_free_singleton σ π l ls :
   dom π ⊆ dom σ ->
   (forall l, l ∈ ls -> freed σ l) ->
   pred σ π -∗ l ↤ ls ==∗
@@ -682,8 +675,7 @@ Proof.
 Qed.
 
 (* An iterated version of the previous lemma. *)
-
-Lemma pred_free_group antecedents locs : ∀ σ π,
+Local Lemma pred_free_group antecedents locs : ∀ σ π,
   dom π ⊆ dom σ ->
   (forall l, l ∈ antecedents -> freed σ l) ->
   pred σ π ∗
@@ -738,7 +730,7 @@ Qed.
 
 (* [gs2] is determined: it is [(gs1 ⊎ ls2) ∖ ls1]. *)
 
-Lemma pred_update σ π l' q gs1 gs2 ls1 ls2 :
+Local Lemma pred_update σ π l' q gs1 gs2 ls1 ls2 :
   π !! l' = Some gs1 →
   dom π ⊆ dom σ ->
   (q=0%Qz -> AllNeg ls2) ->
@@ -775,7 +767,7 @@ Proof.
 Qed.
 
 (* We can always allocate an empty fracset. *)
-Lemma fracset_local_alloc_unit l μ :
+Local Lemma fracset_local_alloc_unit l μ :
   l ∈ dom μ ->
   (μ, ε) ~l~> (μ, {[l := ε]}).
 Proof.
@@ -797,7 +789,8 @@ Proof.
   { by rewrite lookup_singleton_ne // left_id. }
 Qed.
 
-Lemma insert_op_r `{Countable K} {A : cmra} l (u:A) (k1 k2:gmap K A)  :
+(* LATER: move to stdpp *)
+Local Lemma insert_op_r `{Countable K} {A : cmra} l (u:A) (k1 k2:gmap K A)  :
   l ∉ dom k1 ->
   <[l:=u]> (k1 ⋅ k2) = k1 ⋅ <[l:=u]> k2.
 Proof.
@@ -837,7 +830,7 @@ Proof.
 Qed.
 
 (* We can get an empty mapsfrom from every allocated location. *)
-Lemma get_empty_mapsfrom l' σ π :
+Local Lemma get_empty_mapsfrom l' σ π :
   dom π ⊆ dom σ ->
   pred σ π ==∗
   pred σ π ∗ mapsfrom l' 0%Qz ∅.
@@ -848,7 +841,7 @@ Proof.
   iFrame. iExists _. by iFrame.
 Qed.
 
-Lemma pred_update_no_mapsfrom σ π l' (ps1 ps2 : gmultiset loc) (ls2 : smultiset loc):
+Local Lemma pred_update_no_mapsfrom σ π l' (ps1 ps2 : gmultiset loc) (ls2 : smultiset loc):
   π !! l' = Some ps1 →
   dom π ⊆ dom σ ->
   (of_gmultiset ps1) ⊎ ls2 ≡ (of_gmultiset ps2) →
@@ -863,9 +856,9 @@ Proof.
   by rewrite right_id.
 Qed.
 
-Lemma pred_update_freed σ π l' ms :
+Local Lemma pred_update_freed σ π l' ms :
   dom π ⊆ dom σ ->
-  (∀m, m ∈ ms → freed σ m) →
+  (∀ m, m ∈ ms → freed σ m) →
   pred σ π ==∗
   pred σ π ∗ l' ↤{0} (of_gmultiset_neg ms).
 Proof.
@@ -941,7 +934,7 @@ Qed.
    while the mapsfrom assertion becomes [l' ↤{q} (ls ⊎ {[l]})]. It is worth
    noting that the fraction [q] is not required to be 1. *)
 
-Lemma pred_register σ π l l' q ls :
+Local Lemma pred_register σ π l l' q ls :
   dom π ⊆ dom σ ->
   q <> 0%Qz ->
   pred σ π -∗ l' ↤{q} ls ==∗
@@ -963,7 +956,7 @@ Qed.
    the storement is more complex, and the final store [π'] is not known
    exactly; we get a lower bound and an upper bound on it. *)
 
-Lemma pred_unregister σ π l l' :
+Local Lemma pred_unregister σ π l l' :
   dom π ⊆ dom σ ->
   l ∈ predecessors π l' ->
   pred σ π ==∗
@@ -1096,7 +1089,7 @@ Proof.
     multiset_solver. }
 Qed.
 
-Lemma pred_foldr_register l :
+Local Lemma pred_foldr_register l :
   ∀ triples σ π,
   dom π ⊆ dom σ ->
   pred σ π -∗ interpret triples ==∗
@@ -1117,7 +1110,7 @@ Proof.
   by iFrame.
 Qed.
 
-Lemma pred_foldr_unregister l :
+Local Lemma pred_foldr_unregister l :
   ∀ σ (xs : list loc) π,
     dom π ⊆ dom σ ->
    (forall l', gmultiset.multiplicity l' (list_to_set_disj xs) <= gmultiset.multiplicity l (predecessors π l')) ->
@@ -1156,7 +1149,7 @@ Qed.
 
 (* ------------------------------------------------------------------------ *)
 
-Lemma invariant_alloc_no_pointers σ π l b :
+Local Lemma invariant_alloc_no_pointers σ π l b :
   invariant σ π →
   l ∉ dom σ →
   b ≠ deallocated →
@@ -1247,7 +1240,7 @@ Qed.
 (* We produce a witness that the set [locs] contains no roots and is closed
    under predecessors. This fact is stored in terms of successors. *)
 
-Lemma pred_update_store_deallocate σ π locs :
+Local Lemma pred_update_store_deallocate σ π locs :
   pred σ π -∗ pred (deallocate locs σ) π.
 Proof.
   iIntros "[%μ [%Hμ Hauth]]".

@@ -1258,8 +1258,8 @@ Lemma strongs_aapao sz ms θ θ' σ σ' :
   Forall2 strong θ θ' ->
   rel_store σ σ' ->
   ( ∀ π, Enabled sz ms (Thread π) (θ', σ') → strong_safety.NotStuck sz ms (Thread π) (θ', σ')) ->
-  Aapao (θ', σ') ->
-  Aapao (θ, σ).
+  paao (θ', σ') ->
+  paao (θ, σ).
 Proof.
   intros Hweaks Hstrongs Hrel Hgo Haaa.
   intros ?? X E.
@@ -1306,8 +1306,8 @@ Qed.
 Lemma strongs_gns sz ms θ θ' σ σ' :
   Forall2 strong θ θ' ->
   rel_store σ σ' ->
-  Gns sz ms (θ', σ') ->
-  Gns sz ms (θ, σ).
+  gccmeaf sz ms (θ', σ') ->
+  gccmeaf sz ms (θ, σ).
 Proof.
   intros Hstrongs Hrel Hgns Hout Hall.
   eapply forall_strong_all_outside in Hout; eauto.

@@ -45,17 +45,17 @@ Definition stack_empty : val :=
     "stack".
 
 Definition stack_push : val :=
-  λ: [["v","stack"]],
+  λ: [["stack","v"]],
     let: "front" := "stack".[0] in
     let: "is_full" := C.stack_is_full [["front"]] in
     if: "is_full" then
       let: "newfront" := C.stack_empty [] in
       "stack".[0] <- "newfront";;
       let: "tail" := "stack".[1] in
-      P.stack_push [["front", "tail"]];;
-      C.stack_push [["v", "newfront"]]
+      P.stack_push [["tail","front"]];;
+      C.stack_push [["newfront","v"]]
     else
-      C.stack_push [["v", "front"]].
+      C.stack_push [["front","v"]].
 
 Definition stack_pop : val :=
   λ: [["stack"]],
@@ -142,8 +142,8 @@ Record StackInv {A} (L LF:list A) (LS:list (list A)) : Prop :=
       match P.capacity with None => True | Some c => length LS <= Pos.to_nat c end
     }.
 
-Definition StackOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qz * Qp))) (s:loc) : iProp Σ :=
-  ∃ (f t:loc) (LF:list (A * (Qz * Qp))) (LT:list (list (A * (Qz * Qp)))),
+Definition StackOf `{interpGSMore Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qp * Qz))) (s:loc) : iProp Σ :=
+  ∃ (f t:loc) (LF:list (A * (Qp * Qz))) (LT:list (list (A * (Qp * Qz)))),
     ⌜StackInv xs LF LT⌝ ∗ ♢ (potential (length LF)) ∗
     s ↦ [val_loc f;val_loc t] ∗ f ⟸ ∅ ∗ f ↤ {[+ s +]} ∗
       t ⟸ ∅ ∗ t ↤ {[+ s +]} ∗
@@ -154,7 +154,7 @@ Ltac destruct_stack Hs :=
   iDestruct Hs as
     "[%f [%t [%LF [%LT (%Hinv & Hdiams & ? & ? & ? & ? & ? & Hf & Ht)]]]]".
 
-Lemma stack_is_empty_spec `{interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_empty_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_empty [[s]])
   TID π
   SOUV {[s]}
@@ -220,7 +220,7 @@ Proof.
   naive_solver by nia.
 Qed.
 
-Lemma stack_is_full_spec `{interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_full_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_full [[s]])
   TID π
   SOUV {[s]}
@@ -258,7 +258,7 @@ Proof.
   destruct P.capacity; simpl in *; lia.
 Qed.
 
-Lemma stack_empty_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) :
+Lemma stack_empty_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) :
   CODE (stack_empty [[]])
   TID π
   PRE  (♢ empty_cost)
@@ -284,7 +284,7 @@ Proof.
   iApply (wpc_context_singleton c with "[$]").
 
   simpl. wpc_let_empty.
-  wpc_apply (DP.stack_empty_dominant_spec _ _ (λ xs : list (A * (Qz * Qp)), post (C.StackOf R xs))). set_solver.
+  wpc_apply (DP.stack_empty_dominant_spec _ _ (λ xs : list (A * (Qp * Qz)), post (C.StackOf R xs))). set_solver.
   iIntros (p) "(? & ? & ?)".
   simpl. wpc_let_noclean. wpc_store. iIntros "(?&?&_)".
   rewrite left_id.
@@ -321,14 +321,14 @@ Proof.
   { destruct C.capacity; simpl in *; lia. }
 Qed.
 
-Lemma stack_push_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
+Lemma stack_push_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
   size_lt (length xs) capacity ->
   qz ≠ 0%Qz ->
-  CODE (stack_push [[v, s]])
+  CODE (stack_push [[s, v]])
   TID π
   SOUV {[s]}
   PRE  (♢ cell_cost ∗ StackOf R xs s ∗ R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅)
-  POST (fun (_:unit) => StackOf R ((x,(qz,qp))::xs) s).
+  POST (fun (_:unit) => StackOf R ((x,(qp,qz))::xs) s).
 Proof.
   iIntros (Hiu ?) "(? & Hs & ? & ? & ?)".
   pose proof C.locs_stack_is_full.
@@ -448,11 +448,11 @@ Proof.
   { destruct P.capacity; simpl in *; lia. }
 Qed.
 
-Lemma stack_pop_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
+Lemma stack_pop_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
   CODE (stack_pop [[s]])
   TID π
   SOUV {[s]}
-  PRE  (StackOf R ((x,(qz,qp))::xs) s)
+  PRE  (StackOf R ((x,(qp,qz))::xs) s)
   POST (fun v => R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅ ∗ StackOf R xs s ∗ ♢ cell_cost).
 Proof.
   iIntros "Hs".
@@ -564,7 +564,7 @@ Proof.
         rewrite potential_full //. } } }
 Qed.
 
-Lemma soup_app `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) e l r ls rs :
+Lemma soup_app `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) e l r ls rs :
   soup R e l ls ∗ soup R e r rs -∗
   soup R e (l++r) (ls ++ rs).
 Proof.
@@ -572,7 +572,7 @@ Proof.
   iApply (big_sepL2_app with "[Hl] [Hr]"); iFrame.
 Qed.
 
-Lemma soup_app_exists `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) e l r :
+Lemma soup_app_exists `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) e l r :
   (∃ ls, soup R e l ls) ∗ (∃ rs, soup R e r rs) -∗
   ∃ lrs, soup R e (l++r) (lrs).
 Proof.
@@ -581,7 +581,7 @@ Proof.
   iExists _. iFrame.
 Qed.
 
-Lemma free_soup_children `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) LT vs c :
+Lemma free_soup_children `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) LT vs c :
   C.capacity = Some c ->
   Forall IsFull LT ->
   ([∗ list] x;v ∈ LT;vs, v ↤? ∅ ∗ v ⟸? ∅ ∗ post (C.StackOf R x) v) =[#]=∗
@@ -633,7 +633,7 @@ Proof.
   rewrite app_length (length_concat_full _ c) //.
 Qed.
 
-Lemma stack_free `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) s xs :
+Lemma stack_free `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) s xs :
   s ⟸ ∅ ∗ s ↤ ∅ ∗ StackOf R xs s =[#]=∗
   ♢(empty_cost+cell_cost*length xs) ∗ †s ∗
   (∃ vs, soup R ∅ xs vs).

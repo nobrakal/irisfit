@@ -437,11 +437,14 @@ Proof.
     case_decide; simpl; lia. }
 Qed.
 
-Lemma interp_reasonable b ms0 e mt (k:ctx) σ :
-  interp mt b k e σ ∗ own γmax (to_agree ms0) -∗
-  ⌜all_out e -> live_heap_size sz (image k) σ <= ms0⌝.
+Lemma interp_reasonable b ms0 e mt ts σ :
+  interp mt b (corr_ctx ts) e σ ∗ own γmax (to_agree ms0) -∗
+  ⌜all_out e -> live_heap_size sz (locs ts.*1) σ <= ms0⌝.
 Proof.
   iIntros "(Hi&Hag)" (Htrue).
+  rewrite correct_ctx_image_locs //.
+  generalize (corr_ctx ts). intros k.
+
   destruct_interp "Hi". iDestruct (own_valid_2 with "[$][$]") as "%Hv".
   apply to_agree_op_inv_L in Hv. subst.
 
@@ -482,7 +485,6 @@ Proof.
   { iDestruct (interp_reasonable with "[$]") as "%E".
     iApply fupd_mask_intro. set_solver. iIntros "_".
     iPureIntro.
-    rewrite correct_ctx_image_locs //. unfold AllOut.
     intros. apply E. by eapply correct_corr_critsec. }
   { eapply elem_of_list_lookup in Hel as [i Hlook]. unfold wptp.
     destruct ((Qs ++ replicate (length ts2 - length ts1) (λ _, True)%I)!! i) as [Φ|] eqn: Hlook2; last first.

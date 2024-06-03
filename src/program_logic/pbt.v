@@ -374,14 +374,14 @@ Lemma is_loc_inv v :
   is_loc v -> exists l, v = val_loc l.
 Proof. destruct v; naive_solver. Qed.
 
-Lemma confront_pbt_vpbt l l' p p' S S' :
+Lemma confront_pbt_vpbt l v p p' S S' :
   ¬ (p+p' ≤ 1)%Qp ->
-  l ⟸{p} S ∗ l' ⟸?{p'} S' -∗ ⌜val_loc l ≠ l'⌝.
+  l ⟸{p} S ∗ v ⟸?{p'} S' -∗ ⌜l ∉ locs v⌝.
 Proof.
-  destruct l'; eauto. simpl.
+  destruct v; eauto. simpl.
   iIntros (?) "(? & ?)".
   iDestruct (confront_pbt_pbt with "[$]") as "%". rewrite comm. easy.
-  iPureIntro. intros E. injection E. congruence.
+  iPureIntro. set_solver.
 Qed.
 
 Lemma confront_vpbt_vpbt l l' p p' S S' :

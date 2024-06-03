@@ -241,7 +241,8 @@ Proof.
       simpl.
 
       iApply wp_conseq. iApply inside_clean. iFrame. iIntros "D".
-      iApply @wpc_exit; last iFrame. set_solver. rewrite pbt_PBT. iSmash. }
+      replace (_ ∩ locs tm_exit) with (∅:gset loc) by set_solver.
+      wp_apply wp_exit.  iIntros. rewrite pbt_PBT. iSmash. }
     (* We are going to fail. *)
     { iDestruct (cells_borrow _ lt with "[$][$]") as "(_&[% (Plt&Hcells')])".
       wp_apply wp_cas.wp_cas_fail.

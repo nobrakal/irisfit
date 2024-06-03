@@ -167,17 +167,13 @@ Proof.
   { iSplitR; first easy. iFrame "#∗". }
 Qed.
 
-Local Lemma wp_store_value N l γ π k lp x b :
-  (if is_loc x then k=true else True) ->
+Local Lemma wp_store_value N l γ π lp x b :
   queue_inv N γ l ∗
   value γ lp x  -∗
-  wp ⊤ b π (if: k then #lp.[^0] <- () else ()%V)
+  wp ⊤ b π (#lp.[^0] <- ())
   (fun v => ⌜v=val_unit⌝ ∗ x ↤?{0} {[- lp -]}).
 Proof.
-  iIntros (?) "(HI&?)".
-  iApply wp_if. iIntros "!> _".
-  destruct k.
-  2:{ iApply wp_val. destruct x; naive_solver. }
+  iIntros "(HI&?)".
   iInv "HI" as qintro. solve_atomic.
   iDestruct (value_use with "[$]") as "[% (?&Hb)]".
   wp_apply wp_store.wp_store. easy. compute_done.
@@ -193,12 +189,12 @@ Definition is_loc_head (xs:model) :=
   | (v,_)::_ => is_loc v
   | _ => true end.
 
-Lemma dequeue_spec (b:bool) N π l:
-  ACODE (dequeue [[b,l]])%T
+Lemma dequeue_spec N π l:
+  ACODE (dequeue [[l]])%T
   TID π
   WITH ↑N
   SOUV {[l]}
-  <<< queue N l | ∀∀ xs, queue_content l xs ∗ ⌜if is_loc_head xs then b=true else True⌝ >>>
+  <<< queue N l | ∀∀ xs, queue_content l xs >>>
   <<< ∃∃ x p q xs', ⌜xs=(x,(p,q))::xs'⌝ ∗ queue_content l xs' ∗ ♢2
     | (fun (v:val) => ⌜v=x⌝ ∗ x ⟸?{p} {[π]} ∗ x ↤?{q} ∅) >>>.
 Proof.
@@ -240,7 +236,7 @@ Proof.
 
     iDestruct (IsGuardedQueue_nil with "[$]") as "%". subst. simpl.
 
-    iMod "AU" as (xs) "[(H&Hhead) [Hclose _]]". solve_atomic.
+    iMod "AU" as (xs) "[H [Hclose _]]". solve_atomic.
     iDestruct (queue_content_open with "[$][$]") as "HF".
     iDestruct (auth_excl_agree with "[$][$]") as "%". subst xs.
     iAssert (queue_content l nil) with "[HF]" as "?".
@@ -318,7 +314,7 @@ Proof.
   iDestruct "Hl_" as qintrol. { not_dead l. }
   destruct_decide (decide (ls_=ls)); subst.
   (* Success! We reached a linearization point ! *)
-  { iMod "AU" as (xs) "[(H&%Hhead) [_ Hclose]]". solve_atomic.
+  { iMod "AU" as (xs) "[H [_ Hclose]]". solve_atomic.
 
     iDestruct (queue_content_open with "[$] H") as "?".
     iDestruct (auth_excl_agree (γ.(m)) with "[$][$]") as "%Eq". subst xs_.
@@ -403,7 +399,7 @@ Proof.
     iIntros (?) "(<-&?&?&?) _". simpl.
 
     iApply wp_let_noclean.
-    wp_apply wp_store_value. done.
+    wp_apply wp_store_value.
     iIntros (?) "(->&?) _".
 
     iDestruct (vmapsfrom_join with "[$]") as "?". rewrite left_id.

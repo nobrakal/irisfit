@@ -28,23 +28,23 @@ Definition list_cons : val :=
     "l".
 
 Definition soup `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ)
-  (r:smultiset loc) (xs:list (A * (Qz * Qp))) (vs:list val) : iProp Σ :=
+  (r:smultiset loc) (xs:list (A * (Qp * Qz))) (vs:list val) : iProp Σ :=
   ([∗ list] x;v ∈ xs;vs,
-     let '(x,(qz,qp)) := x in (R x v ∗ v ⟸?{qp} ∅ ∗ v ↤?{qz} r)).
+     let '(x,(qp,qz)) := x in (R x v ∗ v ⟸?{qp} ∅ ∗ v ↤?{qz} r)).
 
 Module ListsOf.
 
-Fixpoint ListOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs : list (A * (Qz * Qp))) (l : val) : iProp Σ :=
+Fixpoint ListOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs : list (A * (Qp * Qz))) (l : val) : iProp Σ :=
   match xs with
   | [] => ⌜l=val_unit⌝
-  | (x,(qz,qp)) :: xs =>
+  | (x,(qp,qz)) :: xs =>
     ∃ l0 v l',  ⌜l=val_loc l0⌝ ∗ l0 ↦ [ v; l'] ∗ R x v ∗ v ⟸?{qp} ∅ ∗ v ↤?{qz} {[+l0+]} ∗ l' ⟸? ∅ ∗ l' ↤? {[+l0+]} ∗ ListOf R xs l'
 end.
 
-Lemma ListOf_eq `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs : list (A * (Qz * Qp))) (l:val) :
+Lemma ListOf_eq `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs : list (A * (Qp * Qz))) (l:val) :
   ListOf R xs l = ( match xs with
   | [] => ⌜l=val_unit⌝
-  | (x,(qz,qp)) :: xs =>
+  | (x,(qp,qz)) :: xs =>
     ∃ l0 v l',  ⌜l=val_loc l0⌝ ∗ l0 ↦ [ v; l'] ∗ R x v ∗ v ⟸?{qp} ∅ ∗ v ↤?{qz} {[+l0+]} ∗ l' ⟸? ∅ ∗ l' ↤? {[+l0+]} ∗ ListOf R xs l' end)%I.
 Proof. destruct xs; easy. Qed.
 
@@ -64,7 +64,7 @@ Lemma list_cons_spec_debt `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) l qz r 
   CODE (list_cons [[v,l]])
   TID π
   PRE  (♢2 ∗ ListOf R xs l ∗ l ⟸? {[π]} ∗ l ↤? r ∗ R x v ∗ v ↤?{qz} ∅)
-  POST (fun (l':val) => l' ⟸? {[π]} ∗ l' ↤? ∅ ∗ (∀ qp, v ⟸?{qp} ∅ -∗ l ↤?{0} (opposite r) -∗ ListOf R ((x,(qz,qp))::xs) l')).
+  POST (fun (l':val) => l' ⟸? {[π]} ∗ l' ↤? ∅ ∗ (∀ qp, v ⟸?{qp} ∅ -∗ l ↤?{0} (opposite r) -∗ ListOf R ((x,(qp,qz))::xs) l')).
 Proof.
   iIntros (?) "(? & ? & ? & ? & ? & ?)".
   wpc_call. wpc_let_noclean. wpc_alloc.
@@ -74,7 +74,7 @@ Proof.
 
   iDestruct (confront_pbt_vpbt with "[$]") as "%".
   { by vm_compute. }
-  pclean l by ltac:(fun _ => destruct l; set_solver).
+  pclean l.
 
   iStep 2. iFrame. iIntros.
   iExists l',v,l. iFrame.
@@ -91,7 +91,7 @@ Lemma list_cons_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) l qz qp x v 
   CODE (list_cons [[v,l]])
   TID π
   PRE  (♢2 ∗ ListOf R xs l ∗ l ⟸? {[π]} ∗ l ↤? ∅ ∗ R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅)
-  POST (fun (l':val) => ListOf R ((x,(qz,qp))::xs) l' ∗ l' ⟸? {[π]} ∗ l' ↤? ∅).
+  POST (fun (l':val) => ListOf R ((x,(qp,qz))::xs) l' ∗ l' ⟸? {[π]} ∗ l' ↤? ∅).
 Proof.
   iIntros (?) "(?&?&?&Hfl&?&?&?)".
   iDestruct (vmapsfrom_split_empty l with "[$]") as "(?&?)".
@@ -127,7 +127,7 @@ Definition Beheaded `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (v:val) qz xs 
 Lemma list_head_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) l qz qp x xs :
   CODE (list_head [[l]])
   TID π
-  PRE  (ListOf R ((x,(qz,qp))::xs) l)
+  PRE  (ListOf R ((x,(qp,qz))::xs) l)
   POST (fun v => R x v ∗ v ⟸?{qp} {[π]} ∗ Beheaded R v qz xs l).
 Proof.
   iIntros "[%[%[% (->&?&?&?&?&?&?&?)]]]".
@@ -151,7 +151,7 @@ Lemma list_free `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) l xs :
   ♢(2*length xs) ∗ ∃ vs, soup R ∅ xs vs.
 Proof.
   revert l.
-  induction xs as [|(x,(qz,qp)) vs]; intros l.
+  induction xs as [|(x,(qp,qz)) vs]; intros l.
   { iIntros "(?&?&->)". iIntros. iFrame. rewrite nil_length right_absorb.
     iMod diamonds_zero. iFrame.
     iExists nil. by iApply big_sepL2_nil. }
@@ -177,7 +177,7 @@ End ListsOf.
 
 Module Lists.
 Import ListsOf.
-Definition List `{!interpGS0 Σ} (xs:list (val*(Qz*Qp))) l : iProp Σ :=
+Definition List `{!interpGS0 Σ} (xs:list (val*(Qp*Qz))) l : iProp Σ :=
   ListOf (fun x y => ⌜x=y⌝)%I xs l.
 
 (* OLD
@@ -185,7 +185,7 @@ Lemma List_nil `{!interpGS0 Σ} l :
   (l ↦ BBlock [ ^0 ])%I ≡ List nil l.
 Proof. easy. Qed.
 Lemma List_cons `{!interpGS0 Σ} x qz qp xs l :
-  (∃ l', l ↦ BBlock [ ^1; x; #l'] ∗ vStackable x qp ∗ x ↤?{qz} {[+l+]} ∗ Stackable l' 1%Qp ∗ l' ↤ {[+l+]} ∗ List xs l')%I ≡ List ((x,(qz,qp))::xs) l.
+  (∃ l', l ↦ BBlock [ ^1; x; #l'] ∗ vStackable x qp ∗ x ↤?{qz} {[+l+]} ∗ Stackable l' 1%Qp ∗ l' ↤ {[+l+]} ∗ List xs l')%I ≡ List ((x,(qp,qz))::xs) l.
 Proof.
   iSplit. iSteps. iApply ListOf_cons. iSteps.
   unfold List. rewrite -ListOf_cons. iSteps.
@@ -208,7 +208,7 @@ Lemma list_cons_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) l qz qp x xs
   CODE (list_cons [[x,l]])
   TID π
   PRE  (♢2 ∗ List xs l ∗ l ⟸? {[π]} ∗ l ↤? ∅ ∗ x ⟸?{qp} {[π]} ∗ x ↤?{qz} ∅)
-  POST (fun (l':val) => List ((x,(qz,qp))::xs) l' ∗ l' ⟸? {[π]} ∗ l' ↤? ∅).
+  POST (fun (l':val) => List ((x,(qp,qz))::xs) l' ∗ l' ⟸? {[π]} ∗ l' ↤? ∅).
 Proof.
   iIntros (?) "(?&?&?&?&?&?)".
   wpc_apply (@list_cons_spec _ _ _ val (fun x y => ⌜x=y⌝)%I); eauto.
@@ -230,7 +230,7 @@ Definition Beheaded `{!interpGS0 Σ} (v:val) qz xs (l:val) : iProp Σ:=
 Lemma list_head_spec `{!interpGS0 Σ} π l qz qp x xs :
   CODE (list_head [[l]])
   TID π
-  PRE  (List ((x,(qz,qp))::xs) l)
+  PRE  (List ((x,(qp,qz))::xs) l)
   POST (fun v => ⌜x=v⌝ ∗ v ⟸?{qp} {[π]} ∗ Beheaded v qz xs l).
 Proof.
   iIntros.

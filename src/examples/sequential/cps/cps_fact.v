@@ -61,7 +61,7 @@ Proof.
   { iModIntro. iIntros. iIntros (?????? ->) "(?&?&?)". subst. simpl.
     iDestruct (confront_pbt_vpbt with "[$]") as "%".
     { apply Qp.not_add_le_l. }
-    pclean l by ltac:(fun _ => destruct (enc n); set_solver).
+    pclean l.
 
     iApply wpc_fconseq. iApply spec_free. iFrame "∗#".
     simpl. rew_qz. iIntros "(?&_)". wpc_val. by iFrame. }

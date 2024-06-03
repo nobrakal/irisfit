@@ -24,5 +24,8 @@ count_lines "src/program_logic"
 echo -n "Examples: "
 count_lines "src/examples"
 
-echo -n "Preexisting libraries: "
-count_lines "src/lib src/spacelang"
+echo -n "Lib: "
+count_lines "src/lib"
+
+echo -n "Spacelang: "
+count_lines "src/spacelang"

@@ -16,6 +16,11 @@ From irisfit.examples Require Import instantiation.
 
 (* ------------------------------------------------------------------------ *)
 
+Definition halves {A} (lst: list (A * (Qp * Qz))) : list (A * (Qp * Qz)) :=
+  (fun '(x,(p,q)) => (x,((p/2)%Qp,(q/2)%Qz))) <$> lst.
+
+(* ------------------------------------------------------------------------ *)
+
 (* Usually returned after a [free] *)
 Definition handles `{interpGS0 Σ}  (xs:list (val * (Qp*Qz))) : iProp Σ :=
   [∗ list] x ∈ xs, let '(v,(p,q)) := x in v ⟸?{p} ∅ ∗ v ↤?{q} ∅.

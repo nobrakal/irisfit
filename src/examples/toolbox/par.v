@@ -95,8 +95,7 @@ Proof.
   iDestruct (confront_pbt_vpbt _ v2 with "[$]") as "%".
   { apply Qp.not_add_le_l. }
 
-  pclean v1 by ltac:(fun _ => destruct v1; set_solver).
-  pclean v2 by ltac:(fun _ => destruct v2; set_solver).
+  pclean v1. pclean v2.
   iSteps.
 Qed.
 

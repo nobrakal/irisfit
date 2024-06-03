@@ -56,9 +56,12 @@ Lemma create_spec N π :
 Proof.
   iIntros.
   wpc_call.
-  wpc_let_noclean.
+  wpc_let_empty.
   wpc_alloc.
   iIntros (s) "(Hs&?&Hps&_)".
+
+  (* XXX add a proper spec for pair. *)
+  wpc_call.
   wpc_let_noclean.
   wpc_alloc.
   iIntros (l) "(?&?&?&?)".

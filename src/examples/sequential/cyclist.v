@@ -1,10 +1,11 @@
 From irisfit.examples Require Import proofmode.
 
-(* A cyclic list is either a reference to unit, or a reference to a
+(* A (mutable) circular list is either a reference to unit, or a reference to a
    proper list cycle.
    List cells are of the form [value,next]
 
-   TODO: app
+   Efficient circular lists are inherently mutable: when you do a cons,
+   you mutate a block in place.
  *)
 
 Definition singleton : val :=
@@ -15,13 +16,9 @@ Definition singleton : val :=
     "r".
 
 Definition copy2 : val :=
-  λ: [["x"]],
-    let: "x0" := "x".[0] in
-    let: "x1" := "x".[1] in
-    let: "r" := alloc 2 in
-    "r".[0] <- "x0";;
-    "r".[1] <- "x1";;
-    "r".
+  λ: [["r","x"]],
+    "x".[0] <- ("r".[0]);;
+    "x".[1] <- ("r".[1]).
 
 Definition nil : val :=
   λ: [[]], alloc 1.
@@ -34,7 +31,8 @@ Definition cons : val :=
       let: "c'" := singleton [["x"]] in
       "l".[0] <- "c'"
     else
-      let: "r" := copy2 [["c"]] in
+      let: "r" := alloc 2 in
+      copy2 [["c","r"]];;
       "c".[0] <- "x";;
       "c".[1] <- "r".
 
@@ -43,22 +41,28 @@ Definition uncons : val :=
     let: "c" := "l".[0] in
     let: "v" := "c".[0] in
     let: "n" := "c".[1] in
-    if: "c" '== "n" then
-      "l".[0] <- val_unit;; "v"
-    else
-      let: "nv" := "n".[0] in
-      let: "nx" := "n".[1] in
-      "c".[0] <- "nv";;
-      "c".[1] <- "nx";;
-      "v".
+    (if: "c" '== "n" then "l".[0] <- val_unit else copy2 [["n","c"]]);;
+    "v".
 
 Definition next : val :=
   λ: [["l"]],
     let: "c" := "l".[0] in
     if: "c" '== val_unit then val_unit
     else
-      let: "n" := "c".[1] in
-      "l".[0] <- "n".
+      "l".[0] <- ("c".[1]).
+
+Definition app : val :=
+  λ: [["l1","l2"]],
+    let: "c2" := "l2".[0] in
+    if: "c2" '== val_unit then val_unit else
+    let: "c1" := "l1".[0] in
+    "l1".[0] <- "c2";;
+    if: "c1" '== val_unit then val_unit else
+    let: "x1" := "c1".[0] in
+    let: "n1" := "c1".[1] in
+    copy2 [["c2","c1"]];;
+    "c2".[0] <- "x1" ;;
+    "c2".[1] <- "n1".
 
 Section cyclist.
 Context `{interpGS0 Σ}.
@@ -125,23 +129,30 @@ Proof.
     wpc_load. iIntros "(?&?)".
 
     iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_false //.
-    wpc_let_noclean. wpc_call.
+    wpc_let_noclean.
+
+    wpc_alloc. iIntros (r) "(?&Hmr&Hpr&_)". simpl.
+    wpc_let_noclean.
+    wpc_call.
 
     iDestruct "HS" as "[%l0 (?&?&?&?&?&HR)]".
     wpc_let_noclean.
     iDestruct (vmapsfrom_correct v with "[$]") as "%Hv".
+
+
+    iApply (wpc_bind_noclean (ctx_store3 _ _)).
     wpc_load. iIntros "(?&?)".
-
-    wpc_let_noclean. wpc_load. iIntros "(?&?)".
-    wpc_let_noclean. wpc_alloc. iIntros (r) "(?&Hmr&Hpr&_)".
-    wpc_let_noclean. wpc_store.
+    wpc_store.
     { intros. destruct Hv; first naive_solver. smultiset_solver. }
-    iIntros "(?&?&?)".
-    wpc_let_noclean.
+    iIntros "(?&?&_)". simpl.
 
-    wpc_store. iIntros "(?&?&?)". wpc_val.
-    wpc_let_noclean. wpc_store. iIntros "(?&?&?)".
-    iApply wpc_postpone. wpc_store. iIntros "(?&?&?)". simpl.
+    iApply (wpc_bind_noclean (ctx_store3 _ _)).
+    wpc_load. iIntros "(?&?)".
+    wpc_store. iIntros "(?&?&?)". simpl.
+
+    wpc_let_noclean. wpc_store. iIntros "(?&?&?)". simpl.
+    iApply wpc_postpone.
+    wpc_store. iIntros "(?&?&?)". simpl.
     pclean x. pclean v. pclean l0. pclean l'. pclean r with "Hpr". wpc_val.
     rewrite !left_id.
     iExists l'. iFrame. iExists r. iFrame.
@@ -170,13 +181,12 @@ Proof.
   wpc_let_noclean. wpc_load. iIntros "(?&?)".
   destruct xs as [|(?,(?,?)) ?].
   { iDestruct "HS" as "->".
-    iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_true //.
     wpc_let_noclean.
-
+    iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_true //.
     wpc_store. iIntros "(?&_&?)". simpl.
     iDestruct (pbt_join with "[$]") as "?". rewrite Qp.div_2.
     iDestruct (confront_pbt_vpbt with "[$]") as "%". apply Qp.not_add_le_l.
-    pclean l0 by ltac:(fun _ => destruct x; set_solver).
+    pclean l0.
     replace ({[π; π]} ∖ {[π]}) with (∅ :gset thread_id) by set_solver.
     do 2 iDestruct (mapsfrom_join with "[$][$]") as "?".
     rewrite left_id Qz_div_2.
@@ -193,15 +203,19 @@ Proof.
   { iDestruct "HS" as "(?&?&[%l1 (?&?&?&?&?&?)])". fold (Seg xs l1 l0).
     iDestruct (pbt_join with "[$]") as "?".
     iDestruct (confront_pbt_pbt l0 l' with "[$]") as "%". by vm_compute.
-    iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_false; last naive_solver.
-    wpc_let_noclean. wpc_load. iIntros "(?&?)".
-    wpc_let_noclean. wpc_load. iIntros "(?&?)".
     wpc_let_noclean.
+    iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_false; last naive_solver.
+
+    wpc_call.
+    wpc_let_noclean. iApply (wpc_bind_noclean (ctx_store3 _ _)).
+    wpc_load. iIntros "(?&?)".
     iDestruct (vmapsfrom_correct v with "[$]") as "%Hv".
     wpc_store.
     { intros. destruct Hv; smultiset_solver. }
     iIntros "(?&?&?)".
-    wpc_let_noclean.
+
+    iApply (wpc_bind_noclean (ctx_store3 _ _)).
+    wpc_load. iIntros "(?&?)".
     wpc_store. iIntros "(?&?&?)". simpl.
 
     iDestruct (vmapsfrom_join with "[$]") as "?".
@@ -210,7 +224,7 @@ Proof.
 
     assert (({[-l0-]} ⊎ {[+ l0 +]}) ≡ ∅) as -> by smultiset_solver.
     iDestruct (confront_pbt_vpbt l' x with "[$]") as "%". apply Qp.not_add_le_l.
-    pclean l' by ltac:(fun _ => destruct x; set_solver).
+    pclean l'.
 
     iApply wpc_tconseq.
     1:iApply (interp_free l').
@@ -273,8 +287,8 @@ Proof.
   { iDestruct "HL" as "[%c (?&?&?&HS)]".
     wpc_load. iIntros "(?&?)".
     iApply wpc_bind_if_noclean. wpc_call_prim. rewrite bool_decide_false //.
-    wpc_let_noclean.
     iDestruct "HS" as "[%c' (?&?&?&?&?&Hxs)]".
+    iApply (@wpc_bind_noclean _ _ _ unit Enc_unit _ _ _ (ctx_store3 (val_loc l) (val_int 0)) (tm_load c (val_int 1))).
     wpc_load. iIntros "(?&?)". iApply wpc_postpone.
     wpc_store. iIntros "(?&?&?)". pclean c'. pclean c.
     wpc_val. simpl.
@@ -296,6 +310,116 @@ Proof.
       3,4:reflexivity. 1,2:by vm_compute. iFrame. generalize (p :: xs). clear p xs. intros xs.
       iApply (go xs v q q0 c c' c' with "[$][$][$][$][$][$][$][$]"). } }
   Unshelve. all:exact inhabitant.
+Qed.
+
+Local Lemma Seg_app l1 l2 l3 L1 L2 :
+  l2 ⟸{1 / 2} ∅ ∗ l2 ↤{1 / 2} ∅ -∗
+  Seg L1 l1 l2 ∗
+  Seg L2 l2 l3 -∗
+  Seg (L1 ++ L2) l1 l3.
+Proof.
+  iIntros "(X1&X2) (H1&H2)".
+  iInduction L1 as [| (?,(?,?))] "IH" forall (l1 l2 L2 l3) "H2 X1 X2".
+  { simpl. done. }
+  simpl. iDestruct "H1" as "[%l' (?&?&?&?&?&X)]".
+  iExists l'. iFrame.
+  destruct L1 as [|(?,(?,?))].
+  { simpl. iDestruct "X" as "->". destruct L2 as [|(?,(?,?))]. done. iFrame. }
+  rewrite -app_comm_cons.
+  iDestruct "X" as "(?&?&?)". iFrame.
+  rewrite app_comm_cons. iApply ("IH" with "[$][$][$][$]").
+Qed.
+
+Lemma cyclist_app_spec π l1 L1 l2  L2 :
+  CODE (app [[l1,l2]])
+  TID π
+  SOUV {[l1]}
+  PRE (CycList L1 l1 ∗ CycList L2 l2 ∗ l2 ⟸ {[π]} ∗ l2 ↤ ∅)
+  POST (fun (_:unit) => CycList (L1 ++ L2) l1 ∗ ♢1).
+Proof.
+  iIntros "(H1&H2&E1&E2)".
+  wpc_call.
+
+  wpc_let_noclean.
+  destruct L2 as [|(v2,(?,?))].
+  { wpc_load. iIntros "?".
+    iApply wpc_bind_if_noclean. wpc_call_prim. simpl.
+    pclean l2.
+    iApply wpc_tconseq. iApply interp_free'. iFrame.
+    iIntros "(?&_&_)". iSteps. done.
+    Unshelve. all: exact inhabitant. }
+
+  iDestruct "H2" as "[%c2 (?&Hc2&?&H2)]".
+  wpc_load. iIntros "(?&Hc2)".
+  iApply wpc_bind_if_noclean. wpc_call_prim. simpl.
+
+  wpc_let_noclean.
+  destruct L1 as [|(v1,(?,?))].
+  { wpc_load. iIntros "?".
+    wpc_let_noclean. wpc_store. simpl. iIntros "(?&?&_)".
+    iApply wpc_postpone.
+    iApply wpc_bind_if_noclean. wpc_call_prim. simpl.
+    pclean l2. pclean c2.
+    iApply wpc_tconseq. iApply interp_free'. iFrame.
+    iIntros "(?&_&?)".
+    iApply wpc_tconseq. iApply (mapsfrom_cleanup c2 l2). iFrame "#∗". iIntros.
+    assert (({[+ l2; l1 +]} ⊎ {[-l2-]}) ≡ {[+l1+]}) as -> by smultiset_solver.
+    iSteps.
+    Unshelve. all: exact inhabitant. }
+
+  iDestruct "H1" as "[%c1 (?&?&?&H1)]".
+  wpc_load. iIntros "(?&?)".
+
+  iApply wpc_let_noclean. wpc_store. simpl. iIntros "(Hl1&?&?)".
+  iApply wpc_bind_if_noclean. wpc_call_prim. simpl.
+  iDestruct "H1" as "[%n1 (?&H1&?&?&?&?)]".
+  wpc_let_noclean. wpc_load. iIntros "(?&?)".
+  wpc_let_noclean. wpc_load. iIntros "(?&?)".
+
+  iDestruct "H2" as "[%n2 (?&H2&?&?&?&?)]".
+  wpc_let_noclean.
+  wpc_call.
+  wpc_let_noclean. iApply (wpc_bind_noclean (ctx_store3 _ _)).
+  wpc_load. iIntros "(?&?)".
+  iDestruct (vmapsfrom_correct v1 with "[$]") as "%Hv1".
+  iDestruct (vmapsfrom_correct v2 with "[$]") as "%Hv2".
+  wpc_store.
+  { intros ?. destruct Hv2 as [|Hv2]; first done. intros ->. specialize (Hv2 eq_refl). smultiset_solver. }
+  iIntros "(?&?&?)". simpl.
+
+  iApply (wpc_bind_noclean (ctx_store3 _ _)).
+  wpc_load. iIntros "(?&?)".
+  wpc_store.
+  iIntros "(?&?&?)". simpl.
+
+  iDestruct (vmapsfrom_join v1 with "[$]") as "?".
+  iDestruct (vmapsfrom_join n1 with "[$]") as "?".
+  rewrite !left_id.
+
+  wpc_let_noclean. wpc_store.
+  { intros ?. destruct Hv1 as [|Hv1]; first done. intros ->. specialize (Hv1 eq_refl). smultiset_solver. }
+  iIntros "(?&?&?)". simpl.
+
+  iApply wpc_postpone.
+  wpc_store. iIntros "(?&?&?)". simpl.
+  iDestruct (vmapsfrom_join c1 with "[$]") as "?".
+  iDestruct (vmapsfrom_join v2 with "[$]") as "?".
+  iDestruct (vmapsfrom_join n2 with "[$]") as "?".
+  rewrite !left_id.
+  assert (({[-c1-]} ⊎ {[+ c1 +]} ⊎ {[+ c2 +]}) ≡ {[+c2+]}) as -> by smultiset_solver.
+  assert (({[-l1-]} ⊎ {[+ l1 +]}) ≡ ∅) as -> by smultiset_solver.
+  assert (({[-c2-]} ⊎ {[+ c2; c1 +]}) ≡ {[+c1+]}) as -> by smultiset_solver.
+
+  pclean c2 with "Hc2". pclean c1. pclean v2. pclean n1. pclean v1. pclean l2. pclean n2. simpl.
+
+  iApply wpc_tconseq. iApply (interp_free' l2). iFrame. iIntros "(C&_&?)".
+  iApply wpc_tconseq. iApply (mapsfrom_cleanup c2 l2). iFrame "#∗". iIntros "Hm2".
+  assert (({[+ l2; l1 +]} ⊎ {[-l2-]}) ≡ {[+ l1 +]}) as -> by smultiset_solver.
+
+  wpc_val. simpl. iFrame "C". iExists c2. iFrame "Hl1 Hc2 Hm2".
+  rewrite app_comm_cons. iApply (Seg_app _ c1 with "[$]"). iFrame.
+  iApply bi.sep_exist_r. iExists n1. iFrame.
+  iExists _. iFrame.
 Qed.
 
 Lemma seq_extract_size xs l l' :

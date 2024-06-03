@@ -1,4 +1,5 @@
 From irisfit Require Import language notation.
+From irisfit.examples Require Import pair.
 
 Definition osent : Z := 0.
 Definition otail : Z := 1.
@@ -6,10 +7,7 @@ Definition otail : Z := 1.
 Definition create : val :=
   λ: [[]],
     let: "sent" := alloc 2 in
-    let: "q" := alloc 2 in
-    "q".[osent] <- "sent";;
-    "q".[otail] <- "sent";;
-    "q".
+    pair [["sent", "sent"]].
 
 Definition enqueue : val :=
   μ: "self", [["q", "x"]],
@@ -21,14 +19,14 @@ Definition enqueue : val :=
     if: ("next" '== val_unit)
     then (* The tail is nil, we can try to insert *)
       if: tm_cas "tail" 1%Z val_unit "node"
-      then (tm_cas "q" otail "tail" "node" ;; tm_exit;; val_unit)
+      then (tm_cas "q" otail "tail" "node" ;; tm_exit)
       else (tm_exit;; "self" [["q","x"]])
     else (* tail didn't point to the last node *)
       (* Try to move the tail-pointer forward, then retry *)
       tm_cas "q" otail "tail" "next" ;; tm_exit;; ("self" [["q","x"]]).
 
 Definition dequeue : val :=
-  μ: "self", [["k","q"]],
+  μ: "self", [["q"]],
     tm_enter;;
     let: "head" := "q".[osent] in
     let: "tail" := "q".[otail] in
@@ -36,13 +34,13 @@ Definition dequeue : val :=
     if: ("head" '== "tail")
     then (* Either the queue is empty or the tail is outdated *)
         (if: ("next" '== val_unit)
-         then tm_exit ;; "self" [["k","q"]]
+         then tm_exit ;; "self" [["q"]]
          else (* outdated tail *)
-           (tm_cas "q" 1%Z "tail" "next";; tm_exit ;; "self" [["k","q"]]))
+           (tm_cas "q" 1%Z "tail" "next";; tm_exit ;; "self" [["q"]]))
     else (* The queue is non empty. *)
       (if: tm_cas "q" osent "head" "next" then
          let: "v" := "next".[0] in
          (* "KILL" the sentinel (if next is not the sentinel anymore, this has no effect) *)
-         (if: "k" then "next".[0] <- val_unit else val_unit);;
+         "next".[0] <- val_unit;;
          (tm_exit ;; "v")
-       else tm_exit ;; "self" [["k","q"]]).
+       else tm_exit ;; "self" [["q"]]).

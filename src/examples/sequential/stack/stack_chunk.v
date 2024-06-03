@@ -20,7 +20,7 @@ Definition stack_empty : val :=
     "c".
 
 Definition stack_push : val :=
-  λ: [["v", "l"]],
+  λ: [["l","v"]],
     let: "size" := "l".[1] in
     let: "new_size" := 1 '+ "size" in
     let: "a" := "l".[0] in
@@ -70,11 +70,11 @@ Record ChunkInv (A L : list val) : Prop :=
   }.
 
 (* [isChunk L a] *)
-Definition isChunkOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qz * Qp))) (c:loc) : iProp Σ :=
+Definition isChunkOf `{interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qp * Qz))) (c:loc) : iProp Σ :=
   ∃ arr vs, c ↦ arr ∗ ⌜ChunkInv arr vs⌝ ∗ soup R {[+c+]} xs vs.
 
 (* [Stack L s] *)
-Definition StackOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qz * Qp))) (s:loc) : iProp Σ :=
+Definition StackOf `{interpGSMore Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qp * Qz))) (s:loc) : iProp Σ :=
   ∃ c i,
     s ↦ [val_loc c; val_int i] ∗ isChunkOf R xs c ∗ c ⟸ ∅ ∗ c ↤ {[+s+]} ∗ ⌜i = length xs⌝.
 
@@ -91,7 +91,7 @@ Lemma bool_decide_iff (P : Prop) {dec : Decision P} Q :
   bool_decide P <-> Q.
 Proof. case_bool_decide; naive_solver. Qed.
 
-Lemma stack_is_empty_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_empty_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_empty [[s]])
   TID π
   SOUV {[s]}
@@ -109,7 +109,7 @@ Proof.
   Unshelve. all:exact inhabitant.
 Qed.
 
-Lemma stack_is_full_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_full_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_full [[s]])
   TID π
   SOUV {[s]}
@@ -138,7 +138,7 @@ Proof.
   { lia. }
 Qed.
 
-Lemma stack_empty_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) :
+Lemma stack_empty_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) :
   CODE (stack_empty [[]])
   TID π
   PRE  (♢ empty_cost)
@@ -189,11 +189,11 @@ Proof.
   { rewrite insert_length. simpl in *. liago. }
 Qed.
 
-Lemma stack_pop_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
+Lemma stack_pop_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
   CODE (stack_pop [[s]])
   TID π
   SOUV {[s]}
-  PRE  (StackOf R ((x,(qz,qp))::xs) s)
+  PRE  (StackOf R ((x,(qp,qz))::xs) s)
   POST (fun v => R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅ ∗ StackOf R xs s ∗ ♢ cell_cost).
 Proof.
   iIntros "Hs".
@@ -285,14 +285,14 @@ Proof.
   { rewrite insert_length. liago. }
 Qed.
 
-Lemma stack_push_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
+Lemma stack_push_spec `{!interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
   size_lt (length xs) capacity ->
   qz ≠ 0%Qz ->
-  CODE (stack_push [[v, s]])
+  CODE (stack_push [[s, v]])
   TID π
   SOUV {[s]}
   PRE  (♢ cell_cost ∗ StackOf R xs s ∗ R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅)
-  POST (fun (_:unit) => StackOf R ((x,(qz,qp))::xs) s).
+  POST (fun (_:unit) => StackOf R ((x,(qp,qz))::xs) s).
 Proof.
   unfold size_lt, capacity.
   iIntros (? ?) "(_ & Hs & ? & ? & ?)".
@@ -330,7 +330,7 @@ Proof.
   Unshelve. all:exact inhabitant.
 Qed.
 
-Lemma soup_cleanup `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) c xs vs :
+Lemma soup_cleanup `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) c xs vs :
   († c ∗ soup R {[+c+]} xs vs)%I =[#]=∗
   soup R ∅ xs vs.
 Proof.
@@ -347,7 +347,7 @@ Proof.
     now iFrame. }
 Qed.
 
-Lemma stack_free `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) s xs :
+Lemma stack_free `{!interpGSMore Σ} A (R:A -> val -> iProp Σ) s xs :
   s ⟸ ∅ ∗ s ↤ ∅ ∗ StackOf R xs s =[#]=∗
   ♢(empty_cost+cell_cost*length xs) ∗ †s ∗
   (∃ vs, soup R ∅ xs vs).

@@ -14,7 +14,7 @@ Definition stack_empty : val :=
     ref [["l"]].
 
 Definition stack_push : val :=
-  λ: [["v", "s"]],
+  λ: [["s", "v"]],
     let: "l" := get [["s"]] in
     let: "l2" := list_cons [["v","l"]] in (* here l is still pointed by s. *)
     set [["s", "l2"]].
@@ -53,7 +53,7 @@ Definition cell_cost  : Qz := 2.
 (* Stack has the full ownership of the pointer _and_ of the list.
    It even possesses a part of its Stackable, as the user will not deallocate the
    stack without giving "Stack" *)
-Definition StackOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qz * Qp))) (s:loc) : iProp Σ :=
+Definition StackOf `{interpGSMore Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (Qp * Qz))) (s:loc) : iProp Σ :=
   ∃ l:val,
     (* s is a reference to l *)
     isRef l s ∗
@@ -65,7 +65,7 @@ Definition StackOf `{!interpGS0 Σ} {A} (R:A -> val -> iProp Σ) (xs:list (A * (
 Ltac destruct_stack Hs :=
   iDestruct Hs as "[%l (Hs & ? & ? & Hl)]".
 
-Lemma stack_is_empty_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_empty_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_empty [[s]])
   TID π
   SOUV {[s]}
@@ -83,7 +83,7 @@ Proof.
   wpc_val. iFrame. iExists _. iFrame.
 Qed.
 
-Lemma stack_is_full_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
+Lemma stack_is_full_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) xs s :
   CODE (stack_is_full [[s]])
   TID π
   SOUV {[s]}
@@ -91,7 +91,7 @@ Lemma stack_is_full_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) xs s :
   POST (fun (b:bool) => ⌜b <-> ¬ (size_lt (length xs) capacity)⌝ ∗ StackOf R xs s).
 Proof. iSteps. Qed.
 
-Lemma stack_empty_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) :
+Lemma stack_empty_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) :
   CODE (stack_empty [[]])
   TID π
   PRE  (♢ empty_cost)
@@ -106,18 +106,18 @@ Proof.
   wpc_apply ref_spec. compute_done. iIntros (?) "(?&?&?&?&_)".
   rewrite left_id. iFrame. simpl.
   iDestruct (confront_pbt_vpbt with "[$]") as "%". by vm_compute. simpl.
-  pclean l by ltac:(fun _ => destruct l; set_solver).
+  pclean l.
   wpc_val. iFrame. iExists _. iFrame.
 Qed.
 
-Lemma stack_push_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
+Lemma stack_push_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz v x xs :
   size_lt (length xs) capacity ->
   qz ≠ 0%Qz ->
-  CODE (stack_push [[v, s]])
+  CODE (stack_push [[s,v]])
   TID π
   SOUV {[s]}
   PRE  (♢ cell_cost ∗ StackOf R xs s ∗ R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅)
-  POST (fun (_:unit) => StackOf R ((x,(qz,qp))::xs) s).
+  POST (fun (_:unit) => StackOf R ((x,(qp,qz))::xs) s).
 Proof.
   iIntros (_ ?) "(?&Hs&?&?&?)".
   destruct_stack "Hs".
@@ -140,11 +140,11 @@ Proof.
   iApply "Hl'". iFrame.
 Qed.
 
-Lemma stack_pop_spec `{!interpGS0 Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
+Lemma stack_pop_spec `{interpGSMore Σ} π A (R:A -> val -> iProp Σ) s qp qz x xs :
   CODE (stack_pop [[s]])
   TID π
   SOUV {[s]}
-  PRE  (StackOf R ((x,(qz,qp))::xs) s)
+  PRE  (StackOf R ((x,(qp,qz))::xs) s)
   POST (fun v => R x v ∗ v ⟸?{qp} {[π]} ∗ v ↤?{qz} ∅ ∗ StackOf R xs s ∗ ♢ cell_cost).
 Proof.
   iIntros "Hs".
@@ -189,7 +189,7 @@ Proof.
   wpc_val. iIntros. iFrame. iExists _. iFrame.
 Qed.
 
-Lemma stack_free `{!interpGS0 Σ} A (R:A -> val -> iProp Σ) s xs :
+Lemma stack_free `{interpGSMore Σ} A (R:A -> val -> iProp Σ) s xs :
   s ⟸ ∅ ∗ s ↤ ∅ ∗ StackOf R xs s =[#]=∗
   ♢(empty_cost + cell_cost*length xs) ∗ † s ∗
   (∃ vs, soup R ∅ xs vs).

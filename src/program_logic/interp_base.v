@@ -26,7 +26,7 @@ Class interpGS (sz:nat -> nat) (Σ : gFunctors) :=
       γctx : gname; (* A name for the ghost cell of the context *)
       γdia : gname; (* A name for the ghost cell of the diamonds *)
       γmax : gname; (* A name for the ghost cell of the maximum live heap size *)
-      γcri : gname;
+      γcri : gname; (* A name for the ghost cell of inside/outside assertions *)
     }.
 
 Ltac destruct_interp H :=
@@ -83,13 +83,13 @@ Definition pbt (l:loc) (q:Qp) (S:gset thread_id) : iProp Σ :=
 Definition PBT (S:gset thread_id) (M:gmap loc Qp) : iProp Σ :=
   [∗ map] l ↦ q ∈ M, pbt l q S.
 
-Definition interp (mt:thread_id) (b:bool) (k:ctx) (e:critsec) (σ:store) : iProp Σ :=
-    ∃ ms τ ρ (η:gmap thread_id (option (gset loc))),
+Definition interp (N:thread_id) (m:bool) (k:ctx) (w:critsec) (σ:store) : iProp Σ :=
+    ∃ (ms:nat) (τ:store) (ρ:gmap loc (gset thread_id)) (η:gmap thread_id (option (gset loc))),
 
     ⌜closed (image k) σ⌝ ∗
     ⌜valid_store sz ms τ⌝ ∗
-    ⌜roots_inv k η ρ mt⌝ ∗
-    ⌜debt e η⌝ ∗
+    ⌜roots_inv k η ρ N⌝ ∗
+    ⌜debt w η⌝ ∗
     ⌜linked (image_less η k) σ τ⌝ ∗
     ⌜synchro_dead τ ρ⌝ ∗
 
@@ -106,7 +106,7 @@ Definition interp (mt:thread_id) (b:bool) (k:ctx) (e:critsec) (σ:store) : iProp
     auth_ctx ρ (dom σ) ∗
 
     (* For each context of each thread, hold its pointed-by thread. *)
-    (if b then (big_opM bi_sep (fun (tid:thread_id) (p:gmap loc Qp * gset loc) => PBT {[tid]} (fst p)) k) else True) ∗
+    (if m then (big_opM bi_sep (fun (tid:thread_id) (p:gmap loc Qp * gset loc) => PBT {[tid]} (fst p)) k) else True) ∗
 
     own γmax (to_agree ms) ∗
 
