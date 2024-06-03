@@ -1,6 +1,11 @@
 # Will it Fit?
 
-A Lambda-Calculus with GC, equipped with a Separation Logic.
+This Coq project includes:
+
+* LambdaFit, a deeply-embedded imperative and concurrent
+  lambda-calculus equipped with tracing garbage collection.
+* IrisFit, an [Iris](https://iris-project.org/)-based Separation Logic
+  for proving heap-space bounds of LambdaFit programs.
 
 ## Setup & build
 
