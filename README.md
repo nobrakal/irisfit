@@ -35,10 +35,10 @@ papers.
 
 * For the submitted paper "Will it Fit? Verifying Heap Space Bounds of
   Concurrent Programs under Garbage Collection with Separation Logic",
-  see `README_paper`.
+  see `README_toplas.md`.
 * For the PhD thesis of Alexandre Moine, "Formal Verification of Heap
   Space Bounds under Garbage Collection",
-  see `README_thesis`.
+  see `README_thesis.md`.
 
 ## ProofGeneral
 
