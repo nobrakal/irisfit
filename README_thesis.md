@@ -178,11 +178,11 @@ The predicate `AllOut` is defined in file
 | Lemma | File                          | Name                                |
 |-------|-------------------------------|-------------------------------------|
 | 1     | `final/final_theorems.v`      | `EveryAllocFits_all_enabled`        |
-| 2     | `final/final_theorems.v`      | `step_main_preserves_size`          |
+| 2     | `final/final_theorems.v`      | `step_default_preserves_size`          |
 | 3     | `final/strong_safety.v`       | `strongly_safe_globally_not_stuck'` |
 | 4     | `final/temporal_logic.v`      | `always_mono`                       |
 | 5     | `final/final_semantics.v`     | `main_to_oblivious`                 |
-| 6     | `final/strong_safety.v`       | `not_stuck_oblivious_to_main`       |
+| 6     | `final/strong_safety.v`       | `not_stuck_oblivious_to_default`       |
 | 7     | `final/gc.v`                  | `gc_non_size_increasing`            |
 | 8     | `program_logic/linked.v`      | `live_heap_size`, by definition.    |
 | 9     | `final/gc.v`                  | `gc_collect_2`                      |
