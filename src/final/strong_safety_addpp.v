@@ -1134,7 +1134,7 @@ Proof.
   { eapply gc_rel_store in H3; eauto. destruct H3 as (σ2'&Hgc&Hneq&?).
     eexists _,σ2'. split_and !; eauto.
     { apply rtc_once. eexists GC. split.
-      { simpl. by eapply forall_strong_all_outside. }
+      { done. }
       { econstructor. rewrite -(strongs_locs θ2) //. done. } } }
 Qed.
 

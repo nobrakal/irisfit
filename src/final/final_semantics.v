@@ -95,7 +95,7 @@ Definition Enabled (ms:nat) (a:action) (c:configuration) : Prop :=
       exists t g, θ !! π = Some (t,g)
              /\ (AllocFits ms σ t)
              /\ (IsPoll t -> EveryAllocFits ms c)
-  | GC => AllOut θ end.
+  | GC => True end.
 
 Definition step_enabled (ms:nat) a (ρ ρ':configuration) : Prop :=
   Enabled ms a ρ /\ step_action a ρ ρ'.
