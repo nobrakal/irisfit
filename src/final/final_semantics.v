@@ -100,7 +100,7 @@ Definition Enabled (ms:nat) (a:action) (c:configuration) : Prop :=
 Definition step_enabled (ms:nat) a (ρ ρ':configuration) : Prop :=
   Enabled ms a ρ /\ step_action a ρ ρ'.
 
-Definition step_main (ms:nat) (ρ ρ':configuration) : Prop :=
+Definition step_default (ms:nat) (ρ ρ':configuration) : Prop :=
   ∃ a, step_enabled ms a ρ ρ'.
 
 Definition is_val (t:tm) := match t with tm_val _ => true | _ => false end.
@@ -294,7 +294,7 @@ Proof.
 Qed.
 
 Lemma main_to_oblivious_pre ms ρ1 σ1 σ1' ρ2 σ2 :
-  rtc (step_main ms) (ρ1,σ1) (ρ2,σ2) ->
+  rtc (step_default ms) (ρ1,σ1) (ρ2,σ2) ->
   gc (locs ρ1.*1) σ1' σ1 ->
   ∃ σ2', rtc step_oblivious (ρ1,σ1') (ρ2,σ2') /\ gc (locs ρ2.*1) σ2' σ2.
 Proof.
@@ -326,7 +326,7 @@ Proof.
 Qed.
 
 Lemma main_to_oblivious ms ρ1 σ1 ρ2 σ2 :
-  rtc (step_main ms) (ρ1,σ1) (ρ2,σ2) ->
+  rtc (step_default ms) (ρ1,σ1) (ρ2,σ2) ->
   ∃ σ2', rtc step_oblivious (ρ1,σ1) (ρ2,σ2') /\ gc (locs ρ2.*1) σ2' σ2.
 Proof. eauto using main_to_oblivious_pre,gc_id. Qed.
 

@@ -222,7 +222,7 @@ Qed.
 
 Lemma step_gc_mcs sz ms n ρ ρ' :
   store_inv n ρ.2 ->
-  step_main sz ms ρ ρ' ->
+  step_default sz ms ρ ρ' ->
   Forall (fun '(t,_) => mcs n t) ρ.1 ->
   Forall (fun '(t,_) => mcs n t) ρ'.1 /\ store_inv n ρ'.2.
 Proof.
@@ -305,7 +305,7 @@ Qed.
 
 Lemma rtc_step_mcs M sz ms ρ ρ' :
   store_inv M ρ.2 ->
-  rtc (step_main sz ms) ρ ρ' ->
+  rtc (step_default sz ms) ρ ρ' ->
   Forall (fun '(t,_) => mcs M t) ρ.1 ->
   Forall (fun '(t,_) => mcs M t) ρ'.1 /\ store_inv M ρ'.2.
 Proof.
@@ -314,7 +314,7 @@ Proof.
 Qed.
 
 Lemma rtc_step_mcs_init sz ms t :
-  exists M, Always (step_main sz ms) (init t) (fun ρ => Forall (fun '(t,_) => mcs M t) ρ.1).
+  exists M, Always (step_default sz ms) (init t) (fun ρ => Forall (fun '(t,_) => mcs M t) ρ.1).
 Proof.
   destruct (find_max t) as (M&?).
   exists M. intros ? Hsteps. eapply rtc_step_mcs in Hsteps; eauto. naive_solver.

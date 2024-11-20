@@ -1084,11 +1084,11 @@ Proof.
 Qed.
 
 Lemma step_gc_rel sz ms θ1 σ1 θ2 σ2 θ1' σ1' :
-  step_main sz ms (θ1,σ1) (θ2,σ2) ->
+  step_default sz ms (θ1,σ1) (θ2,σ2) ->
   Forall weak_anf θ1'.*1 ->
   rel_store σ1 σ1' ->
   Forall2 strong θ1 θ1' ->
-  exists θ2' σ2', rtc (step_main sz ms) (θ1',σ1') (θ2',σ2') /\ Forall2 strong θ2 θ2' /\ rel_store σ2 σ2'.
+  exists θ2' σ2', rtc (step_default sz ms) (θ1',σ1') (θ2',σ2') /\ Forall2 strong θ2 θ2' /\ rel_store σ2 σ2'.
 Proof.
   intros (a&Hen&Hstep) Hweap Hstore Hfor.
   inversion Hstep; subst.
@@ -1139,11 +1139,11 @@ Proof.
 Qed.
 
 Lemma rtc_step_rel sz ms θ1 σ1 θ2 σ2 θ1' σ1' :
-  rtc (step_main sz ms) (θ1,σ1) (θ2,σ2) ->
+  rtc (step_default sz ms) (θ1,σ1) (θ2,σ2) ->
   rel_store σ1 σ1' ->
   Forall2 strong θ1 θ1' ->
-  Always (step_main sz ms) (θ1',σ1') (fun '(θ,_) => Forall weak_anf θ.*1)  ->
-  exists θ2' σ2', rtc (step_main sz ms) (θ1',σ1') (θ2',σ2') /\ Forall2 strong θ2 θ2' /\ rel_store σ2 σ2'.
+  Always (step_default sz ms) (θ1',σ1') (fun '(θ,_) => Forall weak_anf θ.*1)  ->
+  exists θ2' σ2', rtc (step_default sz ms) (θ1',σ1') (θ2',σ2') /\ Forall2 strong θ2 θ2' /\ rel_store σ2 σ2'.
 Proof.
   remember (θ1,σ1) as ρ1. remember (θ2,σ2) as ρ2.
   replace θ1 with (fst ρ1) by naive_solver.
@@ -1409,13 +1409,13 @@ Proof.
 Qed.
 
 (* Main result of the file. *)
-Theorem addpp_preserves_safety sz ms t :
+Theorem addpp_preserves_safety sz ms' ms t :
   weak_anf t ->
-  Always (step_main sz ms) (init t) (StronglySafe sz ms) ->
-  Always (step_main sz ms) (init (addpp t)) (StronglySafe sz ms).
+  Always (step_default sz ms') (init t) (StronglySafe sz ms) ->
+  Always (step_default sz ms') (init (addpp t)) (StronglySafe sz ms).
 Proof.
   intros Hweak Halways (θ,σ) Hsteps.
-  pose proof (weak_anf_always sz ms _ Hweak) as Hweak'.
+  pose proof (weak_anf_always sz ms' _ Hweak) as Hweak'.
   eapply (rtc_step_rel _ _ _ _ _ _ [(t,Out)] ∅) in Hsteps; first last; eauto.
   { apply Forall2_cons. split; try done. by apply Al1. constructor. }
   { rewrite /rel_store fmap_empty //. }

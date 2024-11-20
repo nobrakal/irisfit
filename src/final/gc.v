@@ -139,16 +139,16 @@ Proof.
 Qed.
 
 Lemma gc_read_reachable l r σ σ' :
-  closed r σ ->
   gc r σ σ' ->
   reachable r σ l ->
   σ' !! l = σ !! l.
 Proof.
-  intros Hclo Hgc Hl. generalize Hgc. intros [Hr1 Hr2].
-  assert (l ∈ dom σ) as Hd.
-  { eauto using closed_reachable_in_dom. }
+  intros Hgc Hl. generalize Hgc. intros [Hr1 Hr2].
+  destruct_decide (decide (l ∈ dom σ)) as Hd.
+  2:{ assert (l ∉ dom σ'). erewrite <- gc_dom; done.
+      rewrite !not_elem_of_dom_1 //. }
   assert (l ∈ dom σ').
-  { rewrite -Hr1 //. }
+  { erewrite <- gc_dom; done. }
 
   apply Hr2 in Hd. destruct Hd as [Hd|Hd]; try easy.
   rewrite !lookup_total_alt in Hd.

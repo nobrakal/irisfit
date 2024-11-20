@@ -18,6 +18,9 @@ Implicit Type b : block.
 Global Instance block_inhabited : Inhabited block :=
   populate BDeallocated.
 
+Global Instance block_eq_dec : EqDecision block.
+Proof. solve_decision. Qed.
+
 (* This is the list of pointers found in a memory block. *)
 Definition block_pointer_list b : list loc :=
   match b with

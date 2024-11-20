@@ -370,7 +370,7 @@ Definition not_stuck_oblivious (π:nat) (c:(list (tm*status) * store)) : Prop :=
   let '(ts,σ) := c in
   ∃ t g, ts !! π = Some (t,g) /\ not_stuck t g σ.
 
-Lemma not_stuck_oblivious_to_main ms π ts σ0 σ :
+Lemma not_stuck_oblivious_to_default ms π ts σ0 σ :
   Enabled sz ms (Thread π) (ts, σ) ->
   gc (locs ts.*1) σ0 σ ->
   not_stuck_oblivious π (ts,σ0) ->
@@ -393,7 +393,7 @@ Lemma six_four ms ts σ σ' π t g:
 Proof.
   intros ? Hgc Hall Htg.
   assert ((t,g) ∈ ts) as Htg' by eauto using elem_of_list_lookup_2.
-  eapply not_stuck_oblivious_to_main; try done. naive_solver.
+  eapply not_stuck_oblivious_to_default; try done. naive_solver.
 Qed.
 
 Lemma deduce_gns ms ts σ σ' :
@@ -423,13 +423,15 @@ Proof.
   by eapply atomics_step_false_not_alloc in Htg.
 Qed.
 
-Lemma wp_strong_safety (ms:nat) (t:tm) :
+(* Interestingly, we do not care about the bound on the reduction parameterizing Always. *)
+Lemma wp_strong_safety_strong (ms1 ms2 ms':nat) (t:tm) :
   locs t = ∅ ->
+  ms1 <= ms2 ->
   (∀ `{!interpGS sz Σ} π,
-      ⊢ ♢ms -∗ outside π -∗ wp ⊤ true π t (fun _ => outside π)) ->
-  Always (step_main sz ms) (init t) (StronglySafe ms).
+      ⊢ ♢ms1 -∗ outside π -∗ wp ⊤ true π t (fun _ => outside π)) ->
+  Always (step_default sz ms') (init t) (StronglySafe ms2).
 Proof.
-  intros ? Hwp (ts,σ) Hsteps.
+  intros ? ? Hwp (ts,σ) Hsteps.
   apply main_to_oblivious in Hsteps. destruct Hsteps as (?&Hsteps&Hgc).
   assert (all_not_stuck ts x) as Hs.
   { by eapply wp_adequacy_core; eauto. }
@@ -438,7 +440,11 @@ Proof.
   { eapply deduce_gns; eauto.
     intros ????.
     eapply wp_adequacy_core; eauto.
-    by eapply rtc_r. }
+    { by eapply rtc_r. }
+    { iIntros (???) "E ?". replace ms2 with (ms1 + (ms2 - ms1)) by lia.
+      rewrite nat_to_Qz_add.
+      iDestruct (diamonds_split with "E") as "(?&?)".
+      iApply (Hwp with "[$][$]"). } }
   { intros π Hwf. generalize Hwf. intros ?.
     destruct Hwf as (t'&g'&Htg&_).
     eapply six_four; done. }
@@ -449,7 +455,7 @@ Qed.
 
 Lemma was_gc ms θ σ ρ :
   ¬ EveryAllocFits sz ms (θ,σ) ->
-  step_main sz ms (θ, σ) ρ ->
+  step_default sz ms (θ, σ) ρ ->
   (∀ t, t ∈ θ.*1 → NeedGC sz ms σ t ∨ IsPoll t) ->
   exists σ', ρ = (θ,σ') /\ gc (locs θ.*1) σ σ' /\ σ ≠ σ'.
 Proof.
@@ -497,7 +503,7 @@ Qed.
 Lemma need_untouched θ σ θ' σ' t g ms π :
   θ !! π = Some (t, g) ->
   NeedGC sz ms σ t ->
-  step_main sz ms (θ, σ) (θ', σ') ->
+  step_default sz ms (θ, σ) (θ', σ') ->
   θ' !! π = Some (t,g).
 Proof.
   intros E1 E2 (c&X&Hc).
@@ -526,7 +532,7 @@ Proof.
 Qed.
 
 Lemma step_gc_length ms θ σ θ' σ' :
-  step_main sz ms (θ, σ) (θ', σ') ->
+  step_default sz ms (θ, σ) (θ', σ') ->
   length θ <= length θ'.
 Proof.
   intros (?&?&Hstep).
@@ -572,7 +578,7 @@ Lemma not_all_outside_exists ms θ σ :
   ¬ AllOut θ ->
   paao (θ, σ) ->
   (∀ π, Enabled sz ms (Thread π) (θ, σ) → NotStuck ms (Thread π) (θ, σ)) ->
-  ∃ c, step_main sz ms (θ, σ) c.
+  ∃ c, step_default sz ms (θ, σ) c.
 Proof.
   intros Hout Haaa Hall.
   apply neg_Forall_Exists_neg in Hout.
@@ -594,7 +600,7 @@ Qed.
 Lemma strongly_safe_globally_not_stuck ms θ σ :
   StronglySafe ms (θ, σ) ->
   ¬ Forall (λ t : tm, is_val t) θ.*1 ->
-  exists c, step_main sz ms (θ,σ) c.
+  exists c, step_default sz ms (θ,σ) c.
 Proof.
   intros (X1&X2&X3) Hne.
   destruct_decide (decide (EveryAllocFits sz ms (θ,σ))) as Hwill.
@@ -619,7 +625,7 @@ Proof.
 Qed.
 
 Definition globally_not_stuck ms '(θ,σ) :=
-  (exists c, step_main sz ms (θ,σ) c) \/ (Forall is_val θ.*1).
+  (exists c, step_default sz ms (θ,σ) c) \/ (Forall is_val θ.*1).
 
 Lemma strongly_safe_globally_not_stuck' ms c :
   StronglySafe ms c ->

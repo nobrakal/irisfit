@@ -686,7 +686,7 @@ Qed.
 
 Lemma step_addpp_almost sz ms ρ ρ' :
   store_inv ρ.2 ->
-  step_main sz ms ρ ρ' ->
+  step_default sz ms ρ ρ' ->
   Forall (fun '(t,_) => almostex t) ρ.1 ->
   Forall (fun '(t,_) => almostex t) ρ'.1 /\ store_inv ρ'.2.
 Proof.
@@ -709,7 +709,7 @@ Qed.
 
 Lemma rtc_step_addpp_almost sz ms ρ ρ' :
   store_inv ρ.2 ->
-  rtc (step_main sz ms) ρ ρ' ->
+  rtc (step_default sz ms) ρ ρ' ->
   Forall (fun '(t,_) => almostex t) ρ.1 ->
   Forall (fun '(t,_) => almostex t) ρ'.1 /\ store_inv ρ'.2.
 Proof.
@@ -856,9 +856,9 @@ Definition add_forked (efs:option tm) :=
 Lemma go_after_at_most sz ms M θ σ xs :
   ¬ EveryAllocFits sz ms (θ,σ) ->
   store_inv σ ->
-  Always (step_main sz ms) (θ,σ) ((fun ρ => Forall (fun '(t,_) => mcs M t) ρ.1)) ->
+  Always (step_default sz ms) (θ,σ) ((fun ρ => Forall (fun '(t,_) => mcs M t) ρ.1)) ->
   Forall2 (λ '(t, _) n, almost n t) θ xs ->
-  AfterAtMostWeak (step_main sz ms) (EveryAllocFits sz ms)
+  AfterAtMostWeak (step_default sz ms) (EveryAllocFits sz ms)
     (S (2*(sizecfg M θ xs) + count_allocated σ)) (θ, σ).
 Proof.
   intros Hneed Hinv Halmcs Hfor.
@@ -870,7 +870,7 @@ Proof.
 
   assert (Forall (λ '(t, _), mcs M t) θ) as Hmcs.
   { specialize (Halmcs _ (rtc_refl _ _)). done. }
-  assert (Always (step_main sz ms) (θ', σ') (λ ρ : configuration, Forall (λ '(t, _), mcs M t) ρ.1)) as Halmcs'.
+  assert (Always (step_default sz ms) (θ', σ') (λ ρ : configuration, Forall (λ '(t, _), mcs M t) ρ.1)) as Halmcs'.
   { intros ??. apply Halmcs. by eapply rtc_l. }
   clear Halmcs.
 
@@ -960,8 +960,8 @@ Qed.
 
 (* Main result of the file *)
 Theorem weak_liveness_addpp sz ms t :
-  Always (step_main sz ms) (init (addpp t))
-    (EventuallyWeak (step_main sz ms) (EveryAllocFits sz ms)).
+  Always (step_default sz ms) (init (addpp t))
+    (EventuallyWeak (step_default sz ms) (EveryAllocFits sz ms)).
 Proof.
   intros ? Hsteps.
   assert (Forall (fun '(t,_) => almostex t) ρ'.1 /\ store_inv ρ'.2) as (Hfor&Hinv).

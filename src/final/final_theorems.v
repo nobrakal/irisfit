@@ -18,9 +18,9 @@ Proof.
   apply elem_of_list_lookup. exists π. rewrite list_lookup_fmap Hπ //.
 Qed.
 
-Lemma step_main_preserves_size sz ms ts σ ts' σ' :
+Lemma step_default_preserves_size sz ms ts σ ts' σ' :
   size_heap sz σ <= ms ->
-  step_main sz ms (ts,σ) (ts',σ') ->
+  step_default sz ms (ts,σ) (ts',σ') ->
   size_heap sz σ' <= ms.
 Proof.
   intros Hx Hstep.
@@ -40,20 +40,20 @@ Theorem wp_safety (sz:nat -> nat) (ms:nat) (t:tm) :
   locs t = ∅ ->
   (∀ `{!interpGS sz Σ} π,
       ⊢ ♢ms -∗ outside π -∗ wp ⊤ true π t (fun _ => outside π)) ->
-  Always (step_main sz ms) (init t) (Safe sz ms).
+  Always (step_default sz ms) (init t) (Safe sz ms).
 Proof.
   intros.
   eapply always_mono.
-  2:{ eauto using wp_strong_safety. }
+  2:{ eauto using wp_strong_safety_strong. }
   intros ? (?&?&?). done.
 Qed.
 
 (* How to transform an "eventually weak" into an "eventually" *)
 Lemma strongify_eventually (P:configuration -> Prop) sz ms θ σ:
-  Always (step_main sz ms) (θ, σ) (StronglySafe sz ms) ->
-  Always (step_main sz ms) (θ, σ) (fun '(θ',σ') => Forall is_val θ'.*1 -> P (θ',σ')) ->
-  EventuallyWeak (step_main sz ms) P (θ, σ) ->
-  Eventually (step_main sz ms) P (θ, σ).
+  Always (step_default sz ms) (θ, σ) (StronglySafe sz ms) ->
+  Always (step_default sz ms) (θ, σ) (fun '(θ',σ') => Forall is_val θ'.*1 -> P (θ',σ')) ->
+  EventuallyWeak (step_default sz ms) P (θ, σ) ->
+  Eventually (step_default sz ms) P (θ, σ).
 Proof.
   intros Hsafe Hal (n&Hn).
   exists n.
@@ -87,9 +87,9 @@ Proof.
 Qed.
 
 Lemma strongifiy_liveness sz ms ρ:
-  Always (step_main sz ms) ρ (StronglySafe sz ms) ->
-  Always (step_main sz ms) ρ (EventuallyWeak (step_main sz ms) (EveryAllocFits sz ms)) ->
-  Always (step_main sz ms) ρ (Eventually (step_main sz ms) (EveryAllocFits sz ms)).
+  Always (step_default sz ms) ρ (StronglySafe sz ms) ->
+  Always (step_default sz ms) ρ (EventuallyWeak (step_default sz ms) (EveryAllocFits sz ms)) ->
+  Always (step_default sz ms) ρ (Eventually (step_default sz ms) (EveryAllocFits sz ms)).
 Proof.
   intros Hsafe Hn. intros (?&?) ?.
   eapply strongify_eventually; eauto.
@@ -102,11 +102,11 @@ Theorem wp_liveness_addpp sz (ms:nat) (t:tm) :
   locs t = ∅ ->
   (∀ `{!interpGS sz Σ} π,
       ⊢ ♢ms -∗ outside π -∗ wp ⊤ true π t (fun _ => outside π)) ->
-  Always (step_main sz ms) (init (addpp t))
-    (Eventually (step_main sz ms) (EveryAllocFits sz ms)).
+  Always (step_default sz ms) (init (addpp t))
+    (Eventually (step_default sz ms) (EveryAllocFits sz ms)).
 Proof.
   intros ?? Hwp.
-  apply wp_strong_safety in Hwp; last done.
+  apply (wp_strong_safety_strong _ ms ms ms) in Hwp; try done.
   eapply strongifiy_liveness.
   { eauto using addpp_preserves_safety. }
   { eauto using weak_liveness_addpp. }
@@ -117,11 +117,11 @@ Theorem wp_safety_addpp sz (ms:nat) (t:tm) :
   locs t = ∅ ->
   (∀ `{!interpGS sz Σ} π,
       ⊢ ♢ms -∗ outside π -∗ wp ⊤ true π t (fun _ => outside π)) ->
-  Always (step_main sz ms) (init (addpp t)) (Safe sz ms).
+  Always (step_default sz ms) (init (addpp t)) (Safe sz ms).
 Proof.
   intros ?? Hwp.
   eapply always_mono with (P:= (StronglySafe sz ms)).
   { intros ? (?&?&?). done. }
   eapply addpp_preserves_safety. done.
-  eapply wp_strong_safety; eauto.
+  eapply wp_strong_safety_strong; eauto.
 Qed.

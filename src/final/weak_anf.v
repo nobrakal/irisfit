@@ -318,7 +318,7 @@ Qed.
 Lemma atomic_step_gc_weak_anf_rtc sz ms ρ ρ' :
   Forall weak_anf ρ.1.*1 ->
   store_inv ρ.2 ->
-  rtc (step_main sz ms) ρ ρ' ->
+  rtc (step_default sz ms) ρ ρ' ->
   Forall weak_anf ρ'.1.*1 /\ store_inv ρ'.2.
 Proof.
   intros Hfor Hstore. induction 1. done.
@@ -341,7 +341,7 @@ Qed.
 
 Lemma weak_anf_always sz ms t :
   weak_anf t ->
-  Always (step_main sz ms) (init t) (λ '(θ, _), Forall weak_anf θ.*1).
+  Always (step_default sz ms) (init t) (λ '(θ, _), Forall weak_anf θ.*1).
 Proof.
   intros  ? (?,?) Hrtc.
   eapply atomic_step_gc_weak_anf_rtc in Hrtc. naive_solver.
