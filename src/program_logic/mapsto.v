@@ -108,6 +108,9 @@ Proof.
   iApply (meta_agree with "H1 H2").
 Qed.
 
+Global Instance sizeof_persist l n : Persistent (sizeof l n).
+Proof. apply _. Qed.
+
 (* ------------------------------------------------------------------------ *)
 
 Definition store_interp σ : iProp Σ :=
