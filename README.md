@@ -38,8 +38,8 @@ in [A High-Level Separation Logic for Heap Space under Garbage Collection](https
 We present a correspondence between this formalization and related
 papers.
 
-* For the submitted paper "Will it Fit? Verifying Heap Space Bounds of
-  Concurrent Programs under Garbage Collection with Separation Logic",
+* For the TOPLAS paper "Will it Fit? Verifying Heap Space Bounds of
+  Concurrent Programs under Garbage Collection",
   see `README_toplas.md`.
 * For the PhD thesis of Alexandre Moine, "Formal Verification of Heap
   Space Bounds under Garbage Collection",
